@@ -6,6 +6,7 @@ import { Loader2, Save, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -58,7 +59,7 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
@@ -202,7 +203,7 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
 
         {/* Processos */}
         <div>
-          <FormLabel>Processos</FormLabel>
+          <Label>Processos</Label>
           <div className="flex flex-wrap gap-2 mt-2">
             {processos.map((processo) => (
               <label
@@ -224,13 +225,13 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
           <Button type="button" variant="outline" onClick={onCancel}>
             <X className="mr-2 h-4 w-4" /> Cancelar
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="button" disabled={loading} onClick={form.handleSubmit(handleSubmit)}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Save className="mr-2 h-4 w-4" />
             {initialData ? 'Atualizar' : 'Adicionar'}
           </Button>
         </div>
-      </form>
+      </div>
     </Form>
   )
 }

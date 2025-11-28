@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { ItemForm } from './item-form'
+import { AnexoList } from './anexo-list'
+import { AnexoUpload } from './anexo-upload'
 import { useItens } from '@/lib/hooks/use-itens'
 import { useToast } from '@/hooks/use-toast'
 import { OrcamentoItemWithAnexos } from '@/lib/types/app'
@@ -199,6 +201,36 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
                       <Button variant="outline" size="sm" className="text-red-600" onClick={() => setDeleteId(item.id)}>
                         <Trash2 className="mr-2 h-4 w-4" /> Excluir
                       </Button>
+                    </div>
+
+                    {/* Anexos */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="text-sm font-semibold">📎 Anexos</h4>
+                      
+                      <AnexoList
+                        anexos={item.anexos || []}
+                        itemId={item.id}
+                        orcamentoId={orcamentoId}
+                        onDelete={(id) => {
+                          const updatedItem = {
+                            ...item,
+                            anexos: item.anexos?.filter(a => a.id !== id) || []
+                          }
+                          onItensChange(itens.map(i => i.id === item.id ? updatedItem : i))
+                        }}
+                      />
+                      
+                      <AnexoUpload
+                        itemId={item.id}
+                        orcamentoId={orcamentoId}
+                        onUploadComplete={(anexo) => {
+                          const updatedItem = {
+                            ...item,
+                            anexos: [...(item.anexos || []), anexo]
+                          }
+                          onItensChange(itens.map(i => i.id === item.id ? updatedItem : i))
+                        }}
+                      />
                     </div>
                   </>
                 )}
