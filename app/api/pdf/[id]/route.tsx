@@ -52,7 +52,10 @@ export async function GET(
       <OrcamentoPDF orcamento={orcamento as any} logoBase64={logoBase64} />
     )
 
-    return new NextResponse(pdfBuffer, {
+    // Converter Buffer para Uint8Array para compatibilidade com NextResponse
+    const uint8Array = new Uint8Array(pdfBuffer)
+
+    return new NextResponse(uint8Array, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="Orcamento-${orcamento.numero}.pdf"`,

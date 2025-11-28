@@ -37,7 +37,7 @@ export function OrcamentosList() {
   const [deleteMultiple, setDeleteMultiple] = useState(false)
   const [processingBatch, setProcessingBatch] = useState(false)
 
-  const observer = useRef<IntersectionObserver>()
+  const observer = useRef<IntersectionObserver | null>(null)
   
   // Ref para scroll infinito
   const lastElementRef = useCallback((node: HTMLTableRowElement) => {

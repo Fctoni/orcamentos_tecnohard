@@ -97,7 +97,17 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
               <FormItem>
                 <FormLabel>Lote Mínimo *</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" min="0.01" placeholder="Ex: 100" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    min="0.01" 
+                    placeholder="Ex: 100" 
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -135,9 +145,11 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
                   <Input 
                     type="number" 
                     step="0.001" 
-                    {...field} 
                     value={field.value ?? ''} 
                     onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
                   />
                 </FormControl>
                 <FormMessage />
@@ -151,7 +163,16 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
               <FormItem>
                 <FormLabel>Preço Unitário *</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" min="0.01" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    min="0.01" 
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
