@@ -1,10 +1,10 @@
+import { OrcamentoForm } from '@/components/features/orcamento-form'
+
 export default function NovoOrcamentoPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Novo Orçamento</h1>
-      <p className="text-muted-foreground">Formulário de criação - Em desenvolvimento</p>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">➕ Novo Orçamento</h1>
+      <OrcamentoForm />
     </div>
   )
 }
-
-

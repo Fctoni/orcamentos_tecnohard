@@ -1,10 +1,16 @@
-export default function EditarOrcamentoPage({ params }: { params: { id: string } }) {
+import { OrcamentoForm } from '@/components/features/orcamento-form'
+
+interface Props {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditarOrcamentoPage({ params }: Props) {
+  const { id } = await params
+  
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Editar Orçamento</h1>
-      <p className="text-muted-foreground">ID: {params.id} - Em desenvolvimento</p>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">✏️ Editar Orçamento</h1>
+      <OrcamentoForm orcamentoId={id} />
     </div>
   )
 }
-
-

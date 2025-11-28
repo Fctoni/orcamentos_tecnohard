@@ -39,10 +39,11 @@ export type RegisterFormData = z.infer<typeof registerSchema>
 // Schemas de Orçamento
 export const orcamentoSchema = z.object({
   cliente: z.string().min(1, 'Cliente é obrigatório'),
-  contato: z.string().optional(),
-  frete: z.string().optional(),
-  validade: z.string().optional(),
-  observacoes: z.string().optional(),
+  contato: z.string().optional().nullable(),
+  frete: z.string().optional().nullable(),
+  validade: z.date().optional().nullable(),
+  observacoes: z.string().optional().nullable(),
+  ocultar_valor_total: z.boolean().default(false),
   status: z.enum([
     'cadastrado',
     'aguardando-informacoes',
@@ -51,21 +52,20 @@ export const orcamentoSchema = z.object({
     'aprovado',
     'rejeitado'
   ]).default('cadastrado'),
-  ocultar_valor_total: z.boolean().default(false),
 })
 
-export const orcamentoItemSchema = z.object({
-  codigo_item: z.string().min(1, 'Código do item é obrigatório'),
-  item: z.string().min(1, 'Descrição do item é obrigatória'),
+export const itemSchema = z.object({
+  codigo_item: z.string().min(1, 'Código é obrigatório'),
+  item: z.string().min(1, 'Descrição é obrigatória'),
   unidade: z.string().min(1, 'Unidade é obrigatória'),
-  quantidade: z.number().min(0.01, 'Quantidade deve ser maior que zero'),
-  peso_unitario: z.number().optional(),
-  preco_unitario: z.number().min(0, 'Preço unitário não pode ser negativo'),
-  material: z.string().optional(),
-  processos: z.array(z.string()).optional(),
-  prazo_entrega: z.string().optional(),
-  faturamento_minimo: z.string().optional(),
+  quantidade: z.coerce.number().min(0.01, 'Quantidade deve ser maior que zero'),
+  peso_unitario: z.coerce.number().optional().nullable(),
+  preco_unitario: z.coerce.number().min(0.01, 'Preço é obrigatório'),
+  material: z.string().optional().nullable(),
+  processos: z.array(z.string()).optional().nullable(),
+  prazo_entrega: z.string().optional().nullable(),
+  faturamento_minimo: z.string().optional().nullable(),
 })
 
 export type OrcamentoFormData = z.infer<typeof orcamentoSchema>
-export type OrcamentoItemFormData = z.infer<typeof orcamentoItemSchema>
+export type ItemFormData = z.infer<typeof itemSchema>
