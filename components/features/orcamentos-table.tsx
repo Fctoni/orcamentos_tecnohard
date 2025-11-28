@@ -11,6 +11,7 @@ import {
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -47,6 +48,9 @@ interface OrcamentosTableProps {
   onStatusChange: (id: string, status: OrcamentoStatus) => Promise<{ error: any }>
   lastElementRef: (node: HTMLTableRowElement) => void
   onRefresh: () => void
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+  onSelectAll: () => void
 }
 
 export function OrcamentosTable({
@@ -58,6 +62,9 @@ export function OrcamentosTable({
   onDelete,
   onStatusChange,
   lastElementRef,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
 }: OrcamentosTableProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -84,12 +91,35 @@ export function OrcamentosTable({
     }
   }
 
+  const handleDownloadPDF = async (id: string, numero: string) => {
+    try {
+      const response = await fetch(`/api/pdf/${id}`)
+      if (!response.ok) throw new Error('Erro ao gerar PDF')
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Orcamento-${numero}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast({ title: 'PDF baixado com sucesso!' })
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar PDF' })
+    }
+  }
+
   const SortIcon = ({ column }: { column: string }) => {
     if (sortBy.column !== column) return <ArrowUpDown className="h-4 w-4" />
     return sortBy.direction === 'asc' 
       ? <ArrowUp className="h-4 w-4" /> 
       : <ArrowDown className="h-4 w-4" />
   }
+
+  const deleteOrcamento = deleteId ? orcamentos.find(o => o.id === deleteId) : null
 
   if (loading) {
     return <TableSkeleton />
@@ -105,6 +135,12 @@ export function OrcamentosTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={selectedIds.length === orcamentos.length && orcamentos.length > 0}
+                  onCheckedChange={onSelectAll}
+                />
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => onSort('numero')} className="h-8 px-2">
                   Número <SortIcon column="numero" />
@@ -138,9 +174,15 @@ export function OrcamentosTable({
               <TableRow
                 key={orcamento.id}
                 ref={index === orcamentos.length - 1 ? lastElementRef : undefined}
-                className="cursor-pointer hover:bg-secondary/50"
+                className={`cursor-pointer hover:bg-secondary/50 ${selectedIds.includes(orcamento.id) ? 'bg-secondary/30' : ''}`}
                 onClick={() => router.push(`/orcamentos/${orcamento.id}`)}
               >
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedIds.includes(orcamento.id)}
+                    onCheckedChange={() => onToggleSelect(orcamento.id)}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{orcamento.numero}</TableCell>
                 <TableCell>{orcamento.cliente}</TableCell>
                 <TableCell>
@@ -164,7 +206,7 @@ export function OrcamentosTable({
                       <DropdownMenuItem onClick={() => router.push(`/orcamentos/${orcamento.id}/editar`)}>
                         <Edit className="mr-2 h-4 w-4" /> Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadPDF(orcamento.id, orcamento.numero)}>
                         <FileDown className="mr-2 h-4 w-4" /> Baixar PDF
                       </DropdownMenuItem>
                       <DropdownMenuItem>
@@ -206,19 +248,28 @@ export function OrcamentosTable({
         )}
       </div>
 
-      {/* Dialog de confirmação de exclusão */}
+      {/* Dialog de confirmação de exclusão aprimorado */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir orçamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O orçamento será removido permanentemente.
+            <AlertDialogDescription className="space-y-2">
+              <p>Esta ação não pode ser desfeita.</p>
+              {deleteOrcamento && (
+                <div className="bg-secondary rounded p-3 text-sm">
+                  <p><strong>Número:</strong> {deleteOrcamento.numero}</p>
+                  <p><strong>Cliente:</strong> {deleteOrcamento.cliente}</p>
+                </div>
+              )}
+              <p className="text-red-600 font-medium">
+                Todos os itens e anexos também serão removidos.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Excluir
+              Sim, excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -251,5 +302,3 @@ function EmptyState() {
     </div>
   )
 }
-
-

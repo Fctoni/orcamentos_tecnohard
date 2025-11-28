@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, FileDown, Copy, RefreshCw, FileSpreadsheet } from 'lucide-react'
+import { ArrowLeft, Edit, FileDown, Copy, RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -66,48 +66,6 @@ export function OrcamentoView({ orcamentoId }: OrcamentoViewProps) {
     }
   }
 
-  const handleExportCSV = async () => {
-    try {
-      const response = await fetch(`/api/export?id=${orcamentoId}&format=csv`)
-      if (!response.ok) throw new Error('Erro ao exportar')
-      
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `Orcamento-${orcamento?.numero}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      toast({ title: 'CSV exportado!' })
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro ao exportar CSV' })
-    }
-  }
-
-  const handleExportExcel = async () => {
-    try {
-      const response = await fetch(`/api/export?id=${orcamentoId}&format=xlsx`)
-      if (!response.ok) throw new Error('Erro ao exportar')
-      
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `Orcamento-${orcamento?.numero}.xlsx`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      toast({ title: 'Excel exportado!' })
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro ao exportar Excel' })
-    }
-  }
-
   if (loading) {
     return <Skeleton className="h-[800px] w-full" />
   }
@@ -146,22 +104,6 @@ export function OrcamentoView({ orcamentoId }: OrcamentoViewProps) {
             <FileDown className="mr-2 h-4 w-4" />
             {downloading ? 'Gerando...' : 'Baixar PDF'}
           </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleExportCSV}>
-                📊 Exportar CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel}>
-                📊 Exportar Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <Button variant="outline" onClick={handleDuplicate}>
             <Copy className="mr-2 h-4 w-4" /> Duplicar
