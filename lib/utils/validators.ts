@@ -58,7 +58,7 @@ export const itemSchema = z.object({
   codigo_item: z.string().min(1, 'Código é obrigatório'),
   item: z.string().min(1, 'Descrição é obrigatória'),
   unidade: z.string().min(1, 'Unidade é obrigatória'),
-  quantidade: z.coerce.number().min(0.01, 'Quantidade deve ser maior que zero'),
+  quantidade: z.coerce.number().min(0.01, 'Lote mínimo deve ser maior que zero'),
   peso_unitario: z.coerce.number().optional().nullable(),
   preco_unitario: z.coerce.number().min(0.01, 'Preço é obrigatório'),
   material: z.string().optional().nullable(),

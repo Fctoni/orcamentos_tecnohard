@@ -95,9 +95,9 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
             name="quantidade"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantidade *</FormLabel>
+                <FormLabel>Lote Mínimo *</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" min="0.01" {...field} />
+                  <Input type="number" step="0.01" min="0.01" placeholder="Ex: 100" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

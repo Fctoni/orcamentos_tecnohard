@@ -47,37 +47,17 @@ export function useOrcamentos(options: UseOrcamentosOptions = {}) {
     try {
       const currentLength = reset ? 0 : orcamentos.length
       
-      let query = supabase
-        .from('orcamentos')
-        .select('*')
-        .order(sortBy.column, { ascending: sortBy.direction === 'asc' })
-        .range(currentLength, currentLength + pageSize - 1)
-
-      // Aplicar filtros
-      if (filters.status !== 'all') {
-        query = query.eq('status', filters.status)
-      }
-
-      if (filters.cliente) {
-        query = query.ilike('cliente', `%${filters.cliente}%`)
-      }
-
-      if (filters.dateFrom) {
-        query = query.gte('created_at', filters.dateFrom.toISOString())
-      }
-
-      if (filters.dateTo) {
-        query = query.lte('created_at', filters.dateTo.toISOString())
-      }
-
-      // Busca full-text
-      if (filters.search) {
-        query = query.or(
-          `numero.ilike.%${filters.search}%,cliente.ilike.%${filters.search}%,contato.ilike.%${filters.search}%`
-        )
-      }
-
-      const { data, error } = await query
+      // Usar função RPC para busca que inclui itens
+      const { data, error } = await supabase.rpc('search_orcamentos', {
+        search_term: filters.search || null,
+        status_filter: filters.status === 'all' ? null : filters.status,
+        date_from: filters.dateFrom?.toISOString() || null,
+        date_to: filters.dateTo?.toISOString() || null,
+        sort_column: sortBy.column,
+        sort_direction: sortBy.direction,
+        page_offset: currentLength,
+        page_limit: pageSize,
+      })
 
       if (error) throw error
 

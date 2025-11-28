@@ -117,7 +117,7 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
 
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground">
-                  {item.quantidade} {item.unidade}
+                  Lote Mín: {item.quantidade} {item.unidade}
                 </span>
                 <span className="font-semibold">
                   {formatCurrency(item.preco_total)}

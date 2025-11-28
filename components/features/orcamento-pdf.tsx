@@ -72,12 +72,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
     padding: 8,
   },
-  col1: { width: '12%' },
-  col2: { width: '38%' },
-  col3: { width: '8%', textAlign: 'center' },
-  col4: { width: '8%', textAlign: 'center' },
-  col5: { width: '17%', textAlign: 'right' },
-  col6: { width: '17%', textAlign: 'right' },
+  col1: { width: '15%' },
+  col2: { width: '55%' },
+  col3: { width: '12%', textAlign: 'center' },
+  col4: { width: '18%', textAlign: 'right' },
   colHeader: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 9,
@@ -156,10 +154,8 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
               <View style={styles.tableHeader}>
                 <Text style={[styles.col1, styles.colHeader]}>Código</Text>
                 <Text style={[styles.col2, styles.colHeader]}>Item</Text>
-                <Text style={[styles.col3, styles.colHeader]}>Qtd</Text>
-                <Text style={[styles.col4, styles.colHeader]}>Un</Text>
-                <Text style={[styles.col5, styles.colHeader]}>Preço Un.</Text>
-                <Text style={[styles.col6, styles.colHeader]}>Total</Text>
+                <Text style={[styles.col3, styles.colHeader]}>Peso Un.</Text>
+                <Text style={[styles.col4, styles.colHeader]}>Preço Un.</Text>
               </View>
 
               {/* Linhas */}
@@ -168,18 +164,16 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
                   <Text style={styles.col1}>{item.codigo_item}</Text>
                   <View style={styles.col2}>
                     <Text>{item.item}</Text>
-                    {(item.material || item.processos?.length || item.prazo_entrega) && (
-                      <Text style={styles.detalhes}>
-                        {item.material && `Material: ${item.material} `}
-                        {item.processos?.length ? `| Processos: ${item.processos.join(', ')} ` : ''}
-                        {item.prazo_entrega && `| Prazo: ${item.prazo_entrega}`}
-                      </Text>
-                    )}
+                    <Text style={styles.detalhes}>
+                      {item.material && `Material: ${item.material} `}
+                      {item.processos?.length ? `| Processos: ${item.processos.join(', ')} ` : ''}
+                      {item.quantidade && `| Lote Mínimo: ${item.quantidade} ${item.unidade} `}
+                      {item.prazo_entrega && `| Prazo: ${item.prazo_entrega}`}
+                      {item.faturamento_minimo && ` | Fat. Mínimo: ${item.faturamento_minimo}`}
+                    </Text>
                   </View>
-                  <Text style={styles.col3}>{item.quantidade}</Text>
-                  <Text style={styles.col4}>{item.unidade}</Text>
-                  <Text style={styles.col5}>{formatCurrency(item.preco_unitario)}</Text>
-                  <Text style={styles.col6}>{formatCurrency(item.preco_total)}</Text>
+                  <Text style={styles.col3}>{item.peso_unitario ? `${item.peso_unitario} kg` : '-'}</Text>
+                  <Text style={styles.col4}>{formatCurrency(item.preco_unitario)}</Text>
                 </View>
               ))}
             </View>
