@@ -1,24 +1,27 @@
-export default function DashboardLayout({
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { Header } from '@/components/layout/header'
+import { Toaster } from '@/components/ui/toaster'
+
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-primary">Tecno Hard - Sistema de Orçamentos</h1>
-          <nav className="flex gap-4">
-            <a href="/orcamentos" className="text-sm hover:text-primary">Orçamentos</a>
-            <a href="/config" className="text-sm hover:text-primary">Configurações</a>
-          </nav>
-        </div>
-      </header>
-      <main className="container py-6">
+    <div className="min-h-screen bg-secondary">
+      <Header user={user} />
+      <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+      <Toaster />
     </div>
   )
 }
-
-
