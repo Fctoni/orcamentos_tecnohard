@@ -6,12 +6,13 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { 
   Eye, Edit, Trash2, FileDown, Copy, MoreHorizontal,
-  ArrowUpDown, ArrowUp, ArrowDown 
+  ArrowUpDown, ArrowUp, ArrowDown, FileText
 } from 'lucide-react'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -33,6 +34,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from './status-badge'
 import { useToast } from '@/hooks/use-toast'
 import { Orcamento, OrcamentoStatus, STATUS_CONFIG } from '@/lib/types/app'
@@ -65,6 +67,7 @@ export function OrcamentosTable({
   selectedIds,
   onToggleSelect,
   onSelectAll,
+  onRefresh,
 }: OrcamentosTableProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -107,7 +110,7 @@ export function OrcamentosTable({
       URL.revokeObjectURL(url)
       
       toast({ title: 'PDF baixado com sucesso!' })
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Erro ao gerar PDF' })
     }
   }
@@ -126,19 +129,114 @@ export function OrcamentosTable({
   }
 
   if (orcamentos.length === 0) {
-    return <EmptyState />
+    return (
+      <EmptyState
+        icon={FileText}
+        title="Nenhum orçamento encontrado"
+        description="Crie seu primeiro orçamento para começar a usar o sistema."
+        action={{ label: 'Criar Orçamento', href: '/orcamentos/novo' }}
+      />
+    )
   }
+
+  const ActionsMenu = ({ orcamento }: { orcamento: Orcamento }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Mais opções">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => router.push(`/orcamentos/${orcamento.id}`)}>
+          <Eye className="mr-2 h-4 w-4" /> Visualizar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push(`/orcamentos/${orcamento.id}/editar`)}>
+          <Edit className="mr-2 h-4 w-4" /> Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownloadPDF(orcamento.id, orcamento.numero)}>
+          <FileDown className="mr-2 h-4 w-4" /> Baixar PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <Copy className="mr-2 h-4 w-4" /> Duplicar
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>🔄 Alterar Status</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+              <DropdownMenuItem 
+                key={key}
+                onClick={() => handleStatusChange(orcamento.id, key as OrcamentoStatus)}
+              >
+                {config.icon} {config.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          className="text-red-600"
+          onClick={() => setDeleteId(orcamento.id)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" /> Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 
   return (
     <>
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
+      {/* Versão Mobile - Cards */}
+      <div className="md:hidden space-y-4">
+        {orcamentos.map((orcamento, index) => (
+          <Card 
+            key={orcamento.id}
+            className={`cursor-pointer transition-colors ${selectedIds.includes(orcamento.id) ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => router.push(`/orcamentos/${orcamento.id}`)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(orcamento.id)}
+                      onCheckedChange={() => onToggleSelect(orcamento.id)}
+                      aria-label={`Selecionar orçamento ${orcamento.numero}`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold">{orcamento.numero}</p>
+                    <p className="text-sm text-muted-foreground">{orcamento.cliente}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={orcamento.status as OrcamentoStatus} />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ActionsMenu orcamento={orcamento} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(orcamento.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                </span>
+                <span className="font-semibold">{formatCurrency(orcamento.valor_total)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Versão Desktop - Tabela */}
+      <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
+        <Table role="table" aria-label="Lista de orçamentos">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[40px]">
                 <Checkbox
                   checked={selectedIds.length === orcamentos.length && orcamentos.length > 0}
                   onCheckedChange={onSelectAll}
+                  aria-label="Selecionar todos os orçamentos"
                 />
               </TableHead>
               <TableHead>
@@ -181,6 +279,7 @@ export function OrcamentosTable({
                   <Checkbox
                     checked={selectedIds.includes(orcamento.id)}
                     onCheckedChange={() => onToggleSelect(orcamento.id)}
+                    aria-label={`Selecionar orçamento ${orcamento.numero}`}
                   />
                 </TableCell>
                 <TableCell className="font-medium">{orcamento.numero}</TableCell>
@@ -193,48 +292,7 @@ export function OrcamentosTable({
                 </TableCell>
                 <TableCell>{formatCurrency(orcamento.valor_total)}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/orcamentos/${orcamento.id}`)}>
-                        <Eye className="mr-2 h-4 w-4" /> Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push(`/orcamentos/${orcamento.id}/editar`)}>
-                        <Edit className="mr-2 h-4 w-4" /> Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownloadPDF(orcamento.id, orcamento.numero)}>
-                        <FileDown className="mr-2 h-4 w-4" /> Baixar PDF
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Copy className="mr-2 h-4 w-4" /> Duplicar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>🔄 Alterar Status</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                            <DropdownMenuItem 
-                              key={key}
-                              onClick={() => handleStatusChange(orcamento.id, key as OrcamentoStatus)}
-                            >
-                              {config.icon} {config.label}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-red-600"
-                        onClick={() => setDeleteId(orcamento.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ActionsMenu orcamento={orcamento} />
                 </TableCell>
               </TableRow>
             ))}
@@ -253,17 +311,19 @@ export function OrcamentosTable({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir orçamento?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>Esta ação não pode ser desfeita.</p>
-              {deleteOrcamento && (
-                <div className="bg-secondary rounded p-3 text-sm">
-                  <p><strong>Número:</strong> {deleteOrcamento.numero}</p>
-                  <p><strong>Cliente:</strong> {deleteOrcamento.cliente}</p>
-                </div>
-              )}
-              <p className="text-red-600 font-medium">
-                Todos os itens e anexos também serão removidos.
-              </p>
+            <AlertDialogDescription className="space-y-2" asChild>
+              <div>
+                <p>Esta ação não pode ser desfeita.</p>
+                {deleteOrcamento && (
+                  <div className="bg-secondary rounded p-3 text-sm">
+                    <p><strong>Número:</strong> {deleteOrcamento.numero}</p>
+                    <p><strong>Cliente:</strong> {deleteOrcamento.cliente}</p>
+                  </div>
+                )}
+                <p className="text-red-600 font-medium">
+                  Todos os itens e anexos também serão removidos.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -280,25 +340,32 @@ export function OrcamentosTable({
 
 function TableSkeleton() {
   return (
-    <div className="bg-white rounded-lg border p-4 space-y-4">
-      {[...Array(5)].map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full" />
-      ))}
-    </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="bg-white rounded-lg border p-12 text-center">
-      <div className="text-6xl mb-4">📋</div>
-      <h3 className="text-lg font-semibold mb-2">Nenhum orçamento encontrado</h3>
-      <p className="text-muted-foreground mb-6">
-        Crie seu primeiro orçamento para começar.
-      </p>
-      <Button asChild>
-        <a href="/orcamentos/novo">Criar Orçamento</a>
-      </Button>
-    </div>
+    <>
+      {/* Mobile skeleton */}
+      <div className="md:hidden space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+              <div className="flex justify-between pt-3 border-t">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-28" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Desktop skeleton */}
+      <div className="hidden md:block bg-white rounded-lg border p-4 space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    </>
   )
 }
