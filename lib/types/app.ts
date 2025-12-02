@@ -13,6 +13,8 @@ export type OrcamentoAnexoInsert = Database['public']['Tables']['orcamento_anexo
 
 export type Processo = Database['public']['Tables']['processos']['Row']
 
+export type Configuracao = Database['public']['Tables']['configuracoes']['Row']
+
 export interface OrcamentoWithItems extends Orcamento {
   itens: OrcamentoItemWithAnexos[]
 }

@@ -187,6 +187,29 @@ export interface Database {
           ultimo_numero?: number
         }
       }
+      configuracoes: {
+        Row: {
+          id: string
+          chave: string
+          valor: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          chave: string
+          valor?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          chave?: string
+          valor?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Functions: {
       gerar_numero_orcamento: {

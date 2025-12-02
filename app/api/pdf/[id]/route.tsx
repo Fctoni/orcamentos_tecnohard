@@ -38,10 +38,35 @@ export async function GET(
     // Carregar logo como base64
     let logoBase64: string | undefined
     try {
-      const logoPath = path.join(process.cwd(), 'public', 'logo-tecnohard.png')
-      if (fs.existsSync(logoPath)) {
-        const logoBuffer = fs.readFileSync(logoPath)
-        logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+      // Primeiro, tentar buscar logo da configuração
+      const { data: configLogo } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'logo_path')
+        .single()
+
+      if (configLogo?.valor) {
+        // Baixar logo do Storage
+        const { data: logoData } = await supabase.storage
+          .from('configuracoes')
+          .download(configLogo.valor)
+
+        if (logoData) {
+          const arrayBuffer = await logoData.arrayBuffer()
+          const logoBuffer = Buffer.from(arrayBuffer)
+          const ext = configLogo.valor.split('.').pop()?.toLowerCase() || 'png'
+          const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`
+          logoBase64 = `data:${mimeType};base64,${logoBuffer.toString('base64')}`
+        }
+      }
+
+      // Fallback: usar logo local se não houver configurado
+      if (!logoBase64) {
+        const logoPath = path.join(process.cwd(), 'public', 'logo-tecnohard.png')
+        if (fs.existsSync(logoPath)) {
+          const logoBuffer = fs.readFileSync(logoPath)
+          logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+        }
       }
     } catch (e) {
       console.warn('Logo não encontrada:', e)

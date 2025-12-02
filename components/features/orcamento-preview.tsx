@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -20,6 +20,7 @@ interface OrcamentoPreviewProps {
 
 export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
   const [logoError, setLogoError] = useState(false)
+  const [configuredLogoUrl, setConfiguredLogoUrl] = useState<string | null>(null)
   const [anexosOpen, setAnexosOpen] = useState(false)
   const [selectedAnexos, setSelectedAnexos] = useState<OrcamentoAnexo[]>([])
   const [selectedItemName, setSelectedItemName] = useState('')
@@ -27,6 +28,32 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
   const [anexoUrls, setAnexoUrls] = useState<Record<string, string>>({})
   const [loadingUrls, setLoadingUrls] = useState(false)
   const supabase = createClient()
+
+  // Carregar logo da configuração
+  useEffect(() => {
+    async function loadConfiguredLogo() {
+      try {
+        const { data: configLogo } = await supabase
+          .from('configuracoes')
+          .select('valor')
+          .eq('chave', 'logo_path')
+          .single()
+
+        if (configLogo?.valor) {
+          const { data } = supabase.storage
+            .from('configuracoes')
+            .getPublicUrl(configLogo.valor)
+          
+          if (data?.publicUrl) {
+            setConfiguredLogoUrl(data.publicUrl)
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar logo configurado:', e)
+      }
+    }
+    loadConfiguredLogo()
+  }, [supabase])
 
   const loadAnexoUrls = async (anexos: OrcamentoAnexo[]) => {
     setLoadingUrls(true)
@@ -203,8 +230,8 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
         <div className="flex justify-center">
           {!logoError ? (
             <Image
-              src="/logo-tecnohard.png"
-              alt="Tecno Hard"
+              src={configuredLogoUrl || "/logo-tecnohard.png"}
+              alt="Logo da Empresa"
               width={300}
               height={120}
               className="object-contain"
