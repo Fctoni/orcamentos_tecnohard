@@ -3,6 +3,23 @@
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Edit, GripVertical, Save, X, Upload, ImageIcon, Loader2 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,9 +32,117 @@ import { useProcessos } from '@/lib/hooks/use-processos'
 import { useConfiguracoes } from '@/lib/hooks/use-configuracoes'
 import { Processo } from '@/lib/types/app'
 
+// Componente de item sortável
+interface SortableProcessoItemProps {
+  processo: Processo
+  editingId: string | null
+  editForm: { codigo: string; nome: string }
+  setEditForm: (form: { codigo: string; nome: string }) => void
+  onStartEdit: (processo: Processo) => void
+  onCancelEdit: () => void
+  onSaveEdit: () => void
+  onToggleAtivo: (id: string, ativo: boolean) => void
+  onDelete: (id: string) => void
+  saving: boolean
+}
+
+function SortableProcessoItem({
+  processo,
+  editingId,
+  editForm,
+  setEditForm,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onToggleAtivo,
+  onDelete,
+  saving,
+}: SortableProcessoItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: processo.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-4 p-3 border rounded-lg bg-background ${!processo.ativo ? 'opacity-50 bg-gray-50' : ''} ${isDragging ? 'shadow-lg z-50' : ''}`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing touch-none"
+        title="Arraste para reordenar"
+      >
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </button>
+      
+      {editingId === processo.id ? (
+        <>
+          <Input
+            className="w-40"
+            value={editForm.codigo}
+            onChange={(e) => setEditForm({ ...editForm, codigo: e.target.value })}
+          />
+          <Input
+            className="flex-1"
+            value={editForm.nome}
+            onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={onSaveEdit} disabled={saving}>
+              <Save className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={onCancelEdit}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <code className="text-sm bg-secondary px-2 py-1 rounded w-40 truncate">
+            {processo.codigo}
+          </code>
+          <span className="flex-1 font-medium">{processo.nome}</span>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={processo.ativo}
+                onCheckedChange={(checked) => onToggleAtivo(processo.id, checked)}
+              />
+              <Label className="text-sm text-muted-foreground">
+                {processo.ativo ? 'Ativo' : 'Inativo'}
+              </Label>
+            </div>
+            
+            <Button size="sm" variant="ghost" onClick={() => onStartEdit(processo)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" className="text-red-600" onClick={() => onDelete(processo.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function ConfigPage() {
   const { toast } = useToast()
-  const { processos, loading: loadingProcessos, saving: savingProcessos, addProcesso, updateProcesso, deleteProcesso, toggleAtivo } = useProcessos(true)
+  const { processos, loading: loadingProcessos, saving: savingProcessos, addProcesso, updateProcesso, deleteProcesso, toggleAtivo, reorderProcessos } = useProcessos(true)
   const { loading: loadingConfig, saving: savingConfig, getLogoUrl, uploadLogo, removeLogo } = useConfiguracoes()
 
   // Estado para edição de processos
@@ -32,6 +157,27 @@ export default function ConfigPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const logoUrl = getLogoUrl()
+
+  // Configuração do drag & drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = processos.findIndex((p) => p.id === active.id)
+      const newIndex = processos.findIndex((p) => p.id === over.id)
+      
+      const reordered = arrayMove(processos, oldIndex, newIndex)
+      await reorderProcessos(reordered)
+      toast({ title: 'Ordem atualizada!' })
+    }
+  }
 
   // Handlers de Processos
   const handleStartEdit = (processo: Processo) => {
@@ -242,6 +388,8 @@ export default function ConfigPage() {
             <CardTitle>🔧 Processos</CardTitle>
             <CardDescription>
               Gerencie os processos disponíveis para seleção nos itens dos orçamentos.
+              <br />
+              <span className="text-xs">Arraste os itens para reordenar.</span>
             </CardDescription>
           </div>
           {!showAddForm && (
@@ -282,66 +430,35 @@ export default function ConfigPage() {
             </div>
           )}
 
-          {/* Lista de processos */}
-          <div className="space-y-2">
-            {processos.map((processo) => (
-              <div
-                key={processo.id}
-                className={`flex items-center gap-4 p-3 border rounded-lg ${!processo.ativo ? 'opacity-50 bg-gray-50' : ''}`}
-              >
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                
-                {editingId === processo.id ? (
-                  <>
-                    <Input
-                      className="w-40"
-                      value={editForm.codigo}
-                      onChange={(e) => setEditForm({ ...editForm, codigo: e.target.value })}
-                    />
-                    <Input
-                      className="flex-1"
-                      value={editForm.nome}
-                      onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSaveEdit} disabled={savingProcessos}>
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <code className="text-sm bg-secondary px-2 py-1 rounded w-40 truncate">
-                      {processo.codigo}
-                    </code>
-                    <span className="flex-1 font-medium">{processo.nome}</span>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={processo.ativo}
-                          onCheckedChange={(checked) => handleToggleAtivo(processo.id, checked)}
-                        />
-                        <Label className="text-sm text-muted-foreground">
-                          {processo.ativo ? 'Ativo' : 'Inativo'}
-                        </Label>
-                      </div>
-                      
-                      <Button size="sm" variant="ghost" onClick={() => handleStartEdit(processo)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setDeleteId(processo.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
+          {/* Lista de processos com drag & drop */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={processos.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {processos.map((processo) => (
+                  <SortableProcessoItem
+                    key={processo.id}
+                    processo={processo}
+                    editingId={editingId}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    onStartEdit={handleStartEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onSaveEdit={handleSaveEdit}
+                    onToggleAtivo={handleToggleAtivo}
+                    onDelete={setDeleteId}
+                    saving={savingProcessos}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
 
           {processos.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
