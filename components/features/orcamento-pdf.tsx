@@ -179,7 +179,7 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
                       <Text>{item.item}</Text>
                       <View style={styles.detalhes}>
                         {item.material && <Text>Material: {item.material}</Text>}
-                        {item.processos?.length > 0 && <Text>Processos: {item.processos.join(', ')}</Text>}
+                        {item.processos && item.processos.length > 0 && <Text>Processos: {item.processos.join(', ')}</Text>}
                         {item.prazo_entrega && <Text>Prazo: {item.prazo_entrega}</Text>}
                         {item.faturamento_minimo && <Text>Fat. Mínimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</Text>}
                       </View>
