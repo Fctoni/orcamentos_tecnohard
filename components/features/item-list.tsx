@@ -14,7 +14,7 @@ import { AnexoUpload } from './anexo-upload'
 import { useItens } from '@/lib/hooks/use-itens'
 import { useToast } from '@/hooks/use-toast'
 import { OrcamentoItemWithAnexos } from '@/lib/types/app'
-import { formatCurrency } from '@/lib/utils/format'
+import { formatCurrency, formatFaturamentoMinimo } from '@/lib/utils/format'
 
 interface ItemListProps {
   orcamentoId: string
@@ -117,10 +117,10 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
 
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground">
-                  Lote Mín: {item.quantidade} {item.unidade}
+                  {item.unidade === 'kg' ? 'Por kg' : 'Por peça'}
                 </span>
                 <span className="font-semibold">
-                  {formatCurrency(item.preco_total)}
+                  {formatCurrency(item.preco_unitario)}{item.unidade === 'kg' ? '/kg' : '/pç'}
                 </span>
                 
                 <CollapsibleTrigger asChild>
@@ -149,10 +149,12 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
                     {/* Detalhes do item */}
                     <div className="grid gap-4 md:grid-cols-3 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Preço Unitário:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {item.unidade === 'kg' ? 'Preço por kg:' : 'Preço por peça:'}
+                        </span>{' '}
                         <span className="font-medium">{formatCurrency(item.preco_unitario)}</span>
                       </div>
-                      {item.peso_unitario && (
+                      {item.unidade === 'pç' && item.peso_unitario && (
                         <div>
                           <span className="text-muted-foreground">Peso Unit.:</span>{' '}
                           <span className="font-medium">{item.peso_unitario} kg</span>
@@ -173,7 +175,7 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
                       {item.faturamento_minimo && (
                         <div>
                           <span className="text-muted-foreground">Fat. Mínimo:</span>{' '}
-                          <span className="font-medium">{item.faturamento_minimo}</span>
+                          <span className="font-medium">{formatFaturamentoMinimo(item.faturamento_minimo)}</span>
                         </div>
                       )}
                     </div>

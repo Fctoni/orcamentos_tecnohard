@@ -21,7 +21,10 @@ interface ItemFormProps {
   loading?: boolean
 }
 
-const UNIDADES = ['kg', 'pç', 'un', 'cx', 'm', 'm²', 'm³', 'L', 'ton']
+const ORCAMENTO_TIPOS = [
+  { value: 'kg', label: 'kg' },
+  { value: 'pç', label: 'Peça' },
+]
 
 export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormProps) {
   const { processos } = useProcessos()
@@ -32,7 +35,7 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
       codigo_item: initialData?.codigo_item || '',
       item: initialData?.item || '',
       unidade: initialData?.unidade || 'kg',
-      quantidade: initialData?.quantidade || 1,
+      quantidade: initialData?.quantidade || 1, // Valor padrão fixo
       peso_unitario: initialData?.peso_unitario || null,
       preco_unitario: initialData?.preco_unitario || 0,
       material: initialData?.material || '',
@@ -41,6 +44,9 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
       faturamento_minimo: initialData?.faturamento_minimo || '',
     },
   })
+
+  // Observa o tipo de orçamento para controle condicional
+  const unidadeSelecionada = form.watch('unidade')
 
   const handleSubmit = (data: ItemFormData) => {
     onSubmit(data)
@@ -89,36 +95,13 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <FormField
-            control={form.control}
-            name="quantidade"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Lote Mínimo *</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    min="0.01" 
-                    placeholder="Ex: 100" 
-                    value={field.value ?? ''}
-                    onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
             name="unidade"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unidade *</FormLabel>
+                <FormLabel>Orçar por *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -126,8 +109,8 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {UNIDADES.map(u => (
-                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    {ORCAMENTO_TIPOS.map(tipo => (
+                      <SelectItem key={tipo.value} value={tipo.value}>{tipo.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -135,33 +118,36 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="peso_unitario"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Peso Unit. (kg)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    step="0.001" 
-                    value={field.value ?? ''} 
-                    onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Peso unitário só aparece se orçar por peça */}
+          {unidadeSelecionada === 'pç' && (
+            <FormField
+              control={form.control}
+              name="peso_unitario"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso Unit. (kg)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.001" 
+                      value={field.value ?? ''} 
+                      onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="preco_unitario"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preço Unitário *</FormLabel>
+                <FormLabel>{unidadeSelecionada === 'kg' ? 'Preço por kg *' : 'Preço por peça *'}</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 

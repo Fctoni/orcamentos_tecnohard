@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,14 +29,22 @@ interface OrcamentoFormProps {
   orcamentoId?: string
 }
 
-export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
+export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const isEditing = !!orcamentoId
   
-  const { orcamento, loading, saving, createOrcamento, updateOrcamento } = useOrcamento(orcamentoId)
+  // ID pode ser o inicial (prop) ou um novo criado via auto-save
+  const [currentOrcamentoId, setCurrentOrcamentoId] = useState<string | undefined>(initialOrcamentoId)
+  const isEditing = !!currentOrcamentoId
+  
+  const { orcamento, loading, saving, createOrcamento, updateOrcamento } = useOrcamento(currentOrcamentoId)
   const [itens, setItens] = useState<OrcamentoItemWithAnexos[]>([])
   const [valorTotal, setValorTotal] = useState(0)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [shouldFocusContato, setShouldFocusContato] = useState(false)
+  const [justCreated, setJustCreated] = useState(false) // Evita mostrar skeleton após auto-save
+  const autoSaveTriggered = useRef(false)
+  const contatoInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<OrcamentoFormData>({
     resolver: zodResolver(orcamentoSchema),
@@ -46,32 +54,102 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
       frete: '',
       validade: null,
       observacoes: '',
-      ocultar_valor_total: false,
+      prazo_faturamento: null,
+      ocultar_valor_total: true,
       status: 'cadastrado',
     },
   })
 
-  // Preencher form quando carregar orçamento
+  // Preencher form quando carregar orçamento (mas não logo após criar)
   useEffect(() => {
     if (orcamento) {
+      // Se acabou de criar, não reseta o form (já tem os valores corretos)
+      // mas carrega os itens caso existam
+      if (justCreated) {
+        setItens(orcamento.itens || [])
+        setJustCreated(false) // Reseta flag após carregar
+        return
+      }
+      
       form.reset({
         cliente: orcamento.cliente,
         contato: orcamento.contato || '',
         frete: orcamento.frete || '',
         validade: orcamento.validade ? new Date(orcamento.validade) : null,
         observacoes: orcamento.observacoes || '',
+        prazo_faturamento: orcamento.prazo_faturamento || null,
         ocultar_valor_total: orcamento.ocultar_valor_total,
         status: orcamento.status,
       })
       setItens(orcamento.itens || [])
     }
-  }, [orcamento, form])
+  }, [orcamento, form, justCreated])
 
   // Recalcular valor total quando itens mudam
   useEffect(() => {
     const total = itens.reduce((acc, item) => acc + (item.preco_total || 0), 0)
     setValorTotal(total)
   }, [itens])
+
+  // Focar no campo contato após auto-save (com delay para garantir que o DOM estabilizou)
+  useEffect(() => {
+    if (shouldFocusContato) {
+      const timer = setTimeout(() => {
+        contatoInputRef.current?.focus()
+        setShouldFocusContato(false)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [shouldFocusContato])
+
+  // Auto-salvar quando cliente é preenchido e perde foco (apenas para novo orçamento)
+  const handleClienteBlur = async () => {
+    const clienteValue = form.getValues('cliente')?.trim()
+    
+    // Só auto-salva se: tem cliente, não está editando, não está salvando, e ainda não foi acionado
+    if (!clienteValue || isEditing || saving || autoSaving || autoSaveTriggered.current) {
+      return
+    }
+    
+    autoSaveTriggered.current = true
+    setAutoSaving(true)
+    
+    try {
+      const formData = form.getValues()
+      const { data: novoOrcamento, error } = await createOrcamento({
+        ...formData,
+        validade: formData.validade?.toISOString().split('T')[0] || null,
+      })
+      
+      if (error) throw error
+      
+      // Marca que acabou de criar (evita mostrar skeleton)
+      setJustCreated(true)
+      
+      // Atualiza o ID localmente (sem refresh da página)
+      setCurrentOrcamentoId(novoOrcamento.id)
+      
+      // Atualiza a URL silenciosamente (sem navegação)
+      window.history.replaceState(null, '', `/orcamentos/${novoOrcamento.id}/editar`)
+      
+      toast({ 
+        title: '✨ Orçamento criado!',
+        description: 'Agora você pode adicionar itens.',
+      })
+      
+      // Sinaliza para focar no campo contato após a re-renderização
+      setShouldFocusContato(true)
+    } catch (error: any) {
+      autoSaveTriggered.current = false
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao criar orçamento',
+        description: error.message,
+      })
+    } finally {
+      setAutoSaving(false)
+    }
+  }
 
   async function onSubmit(data: OrcamentoFormData) {
     try {
@@ -88,8 +166,18 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
           validade: data.validade?.toISOString().split('T')[0] || null,
         })
         if (error) throw error
+        
+        // Marca que acabou de criar (evita mostrar skeleton)
+        setJustCreated(true)
+        
+        // Atualiza o ID localmente (sem refresh da página)
+        setCurrentOrcamentoId(novoOrcamento.id)
+        autoSaveTriggered.current = true
+        
+        // Atualiza a URL silenciosamente
+        window.history.replaceState(null, '', `/orcamentos/${novoOrcamento.id}/editar`)
+        
         toast({ title: 'Orçamento criado com sucesso!' })
-        router.push(`/orcamentos/${novoOrcamento.id}/editar`)
       }
     } catch (error: any) {
       toast({
@@ -100,32 +188,61 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
     }
   }
 
-  if (loading) {
+  // Não mostra skeleton se acabou de criar (evita perder o foco)
+  if (loading && !justCreated) {
     return <FormSkeleton />
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Botões de ação */}
-        <div className="flex flex-wrap gap-2 justify-between">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[calc(100vh-120px)]">
+        {/* Cabeçalho fixo - Botões de ação com Status no meio */}
+        <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b mb-4 shrink-0">
           <Button type="button" variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Button>
+          
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                <FormLabel className="text-sm font-medium">Status</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.icon} {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="flex gap-2">
             {isEditing && (
-              <Button type="button" variant="outline" onClick={() => router.push(`/orcamentos/${orcamentoId}`)}>
+              <Button type="button" variant="outline" onClick={() => router.push(`/orcamentos/${currentOrcamentoId}`)}>
                 <Eye className="mr-2 h-4 w-4" /> Visualizar
               </Button>
             )}
-            <Button type="submit" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={saving || autoSaving}>
+              {(saving || autoSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
               Salvar
             </Button>
           </div>
         </div>
 
+        {/* Conteúdo scrollável */}
+        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
         {/* Seção: Dados do Cliente */}
         <Card>
           <CardHeader>
@@ -139,7 +256,14 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
                 <FormItem>
                   <FormLabel>Cliente *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do cliente" {...field} />
+                    <Input 
+                      placeholder="Nome do cliente" 
+                      {...field} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleClienteBlur()
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -152,7 +276,15 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
                 <FormItem>
                   <FormLabel>Contato</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome da pessoa de contato" {...field} value={field.value || ''} />
+                    <Input 
+                      placeholder="Nome da pessoa de contato" 
+                      {...field} 
+                      ref={(el) => {
+                        field.ref(el)
+                        contatoInputRef.current = el
+                      }}
+                      value={field.value || ''} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -160,6 +292,58 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
             />
           </CardContent>
         </Card>
+
+        {/* Seção: Itens - apenas se editando */}
+        {isEditing && currentOrcamentoId && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>📦 Itens do Orçamento</CardTitle>
+              <div className="flex items-center gap-4">
+                <FormField
+                  control={form.control}
+                  name="ocultar_valor_total"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Ocultar total
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+                {!form.watch('ocultar_valor_total') && (
+                  <div className="text-lg font-semibold">
+                    Total: {formatCurrency(valorTotal)}
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ItemList
+                orcamentoId={currentOrcamentoId}
+                itens={itens}
+                onItensChange={setItens}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {!isEditing && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              {autoSaving ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <p>Criando orçamento...</p>
+                </div>
+              ) : (
+                <p>Preencha o nome do cliente para habilitar os itens.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Seção: Condições Comerciais */}
         <Card>
@@ -213,6 +397,24 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
             />
             <FormField
               control={form.control}
+              name="prazo_faturamento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prazo de Faturamento</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="text" 
+                      placeholder="Ex: 30 dias, à vista, etc."
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="observacoes"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
@@ -226,80 +428,7 @@ export function OrcamentoForm({ orcamentoId }: OrcamentoFormProps) {
             />
           </CardContent>
         </Card>
-
-        {/* Seção: Itens - apenas se editando */}
-        {isEditing && orcamentoId && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>📦 Itens do Orçamento</CardTitle>
-              <div className="text-lg font-semibold">
-                Total: {formatCurrency(valorTotal)}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ItemList
-                orcamentoId={orcamentoId}
-                itens={itens}
-                onItensChange={setItens}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {!isEditing && (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <p>Salve o orçamento primeiro para adicionar itens.</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Seção: Configurações */}
-        <Card>
-          <CardHeader>
-            <CardTitle>⚙️ Configurações</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          {config.icon} {config.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="ocultar_valor_total"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Ocultar valor total no PDF</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+        </div>
       </form>
     </Form>
   )

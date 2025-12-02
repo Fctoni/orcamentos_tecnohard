@@ -21,3 +21,7 @@ export function getErrorMessage(error: unknown): string {
   return 'Erro desconhecido. Tente novamente.'
 }
 
+
+
+
+

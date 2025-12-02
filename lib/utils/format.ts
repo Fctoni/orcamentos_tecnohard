@@ -33,4 +33,22 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+// Formata faturamento mínimo para sempre ter R$ e 2 casas decimais
+// Aceita: "600", "600,00", "R$ 600", "R$ 600,00", etc.
+// Retorna: "R$ 600,00"
+export function formatFaturamentoMinimo(value: string): string {
+  if (!value) return value
+  
+  // Remove "R$", espaços e troca vírgula por ponto
+  const cleanValue = value.replace(/R\$\s*/gi, '').replace(/\s/g, '').replace(',', '.')
+  const numericValue = parseFloat(cleanValue)
+  
+  if (isNaN(numericValue)) return value // Retorna original se não for número
+  
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(numericValue)
+}
+
 

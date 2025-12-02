@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { OrcamentoWithItems, OrcamentoAnexo } from '@/lib/types/app'
-import { formatCurrency } from '@/lib/utils/format'
+import { formatCurrency, formatFaturamentoMinimo } from '@/lib/utils/format'
 import { createClient } from '@/lib/supabase/client'
 
 interface OrcamentoPreviewProps {
@@ -266,11 +266,8 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
                           {item.processos && item.processos.length > 0 && (
                             <p>Processos: {item.processos.join(', ')}</p>
                           )}
-                          {item.quantidade && (
-                            <p>Lote Mínimo: {item.quantidade} {item.unidade}</p>
-                          )}
                           {item.prazo_entrega && <p>Prazo: {item.prazo_entrega}</p>}
-                          {item.faturamento_minimo && <p>Fat. Mínimo: {item.faturamento_minimo}</p>}
+                          {item.faturamento_minimo && <p>Fat. Mínimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</p>}
                         </div>
                         {/* Botão para ver anexos */}
                         {item.anexos && item.anexos.length > 0 && (
@@ -299,10 +296,11 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
         )}
 
         {/* Informações Gerais */}
-        {(orcamento.frete || orcamento.observacoes) && (
+        {(orcamento.frete || orcamento.prazo_faturamento || orcamento.observacoes) && (
           <div className="space-y-2 border-t pt-4">
             <h2 className="text-lg font-semibold text-gray-800">INFORMAÇÕES GERAIS</h2>
             {orcamento.frete && <p><span className="font-medium">Frete:</span> {orcamento.frete}</p>}
+            {orcamento.prazo_faturamento && <p><span className="font-medium">Prazo de Faturamento:</span> {orcamento.prazo_faturamento}</p>}
             {orcamento.observacoes && (
               <p><span className="font-medium">Observações:</span> {orcamento.observacoes}</p>
             )}

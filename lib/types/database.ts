@@ -21,6 +21,7 @@ export interface Database {
           status: OrcamentoStatus
           ocultar_valor_total: boolean
           valor_total: number
+          prazo_faturamento: string | null
           created_at: string
           created_by: string | null
           updated_at: string
@@ -37,6 +38,7 @@ export interface Database {
           status?: OrcamentoStatus
           ocultar_valor_total?: boolean
           valor_total?: number
+          prazo_faturamento?: string | null
           created_at?: string
           created_by?: string | null
           updated_at?: string
@@ -53,6 +55,7 @@ export interface Database {
           status?: OrcamentoStatus
           ocultar_valor_total?: boolean
           valor_total?: number
+          prazo_faturamento?: string | null
           created_at?: string
           created_by?: string | null
           updated_at?: string

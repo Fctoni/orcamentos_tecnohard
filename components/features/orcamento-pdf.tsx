@@ -117,6 +117,15 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
     }).format(value)
   }
 
+  // Formata faturamento mínimo para sempre ter R$ e 2 casas decimais
+  const formatFaturamentoMinimo = (value: string) => {
+    if (!value) return value
+    const cleanValue = value.replace(/R\$\s*/gi, '').replace(/\s/g, '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue)
+    if (isNaN(numericValue)) return value
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numericValue)
+  }
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -155,36 +164,43 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
                 <Text style={[styles.col1, styles.colHeader]}>Código</Text>
                 <Text style={[styles.col2, styles.colHeader]}>Item</Text>
                 <Text style={[styles.col3, styles.colHeader]}>Peso Un.</Text>
-                <Text style={[styles.col4, styles.colHeader]}>Preço Un.</Text>
+                <Text style={[styles.col4, styles.colHeader]}>Preço</Text>
               </View>
 
               {/* Linhas */}
-              {orcamento.itens.map((item) => (
-                <View key={item.id} style={styles.tableRow}>
-                  <Text style={styles.col1}>{item.codigo_item}</Text>
-                  <View style={styles.col2}>
-                    <Text>{item.item}</Text>
-                    <Text style={styles.detalhes}>
-                      {item.material && `Material: ${item.material} `}
-                      {item.processos?.length ? `| Processos: ${item.processos.join(', ')} ` : ''}
-                      {item.quantidade && `| Lote Mínimo: ${item.quantidade} ${item.unidade} `}
-                      {item.prazo_entrega && `| Prazo: ${item.prazo_entrega}`}
-                      {item.faturamento_minimo && ` | Fat. Mínimo: ${item.faturamento_minimo}`}
+              {orcamento.itens.map((item) => {
+                const isPorKg = item.unidade === 'kg'
+                const precoLabel = isPorKg ? '/kg' : '/pç'
+                
+                return (
+                  <View key={item.id} style={styles.tableRow}>
+                    <Text style={styles.col1}>{item.codigo_item}</Text>
+                    <View style={styles.col2}>
+                      <Text>{item.item}</Text>
+                      <View style={styles.detalhes}>
+                        {item.material && <Text>Material: {item.material}</Text>}
+                        {item.processos?.length > 0 && <Text>Processos: {item.processos.join(', ')}</Text>}
+                        {item.prazo_entrega && <Text>Prazo: {item.prazo_entrega}</Text>}
+                        {item.faturamento_minimo && <Text>Fat. Mínimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</Text>}
+                      </View>
+                    </View>
+                    <Text style={styles.col3}>
+                      {isPorKg ? '-' : (item.peso_unitario ? `${item.peso_unitario} kg` : '-')}
                     </Text>
+                    <Text style={styles.col4}>{formatCurrency(item.preco_unitario)}{precoLabel}</Text>
                   </View>
-                  <Text style={styles.col3}>{item.peso_unitario ? `${item.peso_unitario} kg` : '-'}</Text>
-                  <Text style={styles.col4}>{formatCurrency(item.preco_unitario)}</Text>
-                </View>
-              ))}
+                )
+              })}
             </View>
           </View>
         )}
 
         {/* Informações Gerais */}
-        {(orcamento.frete || orcamento.observacoes) && (
+        {(orcamento.frete || orcamento.prazo_faturamento || orcamento.observacoes) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>INFORMAÇÕES GERAIS</Text>
             {orcamento.frete && <Text style={styles.infoText}>Frete: {orcamento.frete}</Text>}
+            {orcamento.prazo_faturamento && <Text style={styles.infoText}>Prazo de Faturamento: {orcamento.prazo_faturamento}</Text>}
             {orcamento.observacoes && <Text style={styles.infoText}>Observações: {orcamento.observacoes}</Text>}
           </View>
         )}

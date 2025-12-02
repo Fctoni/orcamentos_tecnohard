@@ -43,6 +43,7 @@ export const orcamentoSchema = z.object({
   frete: z.string().optional().nullable(),
   validade: z.date().optional().nullable(),
   observacoes: z.string().optional().nullable(),
+  prazo_faturamento: z.string().optional().nullable(),
   ocultar_valor_total: z.boolean(),
   status: z.enum([
     'cadastrado',
