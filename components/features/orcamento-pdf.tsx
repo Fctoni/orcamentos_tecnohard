@@ -16,6 +16,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     fontSize: 10,
     color: '#1E293B',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  content: {
+    flex: 1,
   },
   header: {
     alignItems: 'center',
@@ -26,8 +31,9 @@ const styles = StyleSheet.create({
     height: 80,
     objectFit: 'contain',
   },
+  // Item 07: Titulo com fonte menor
   title: {
-    fontSize: 24,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
     marginBottom: 10,
@@ -36,14 +42,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  // Item 08: Nome cliente com fonte ~10% maior (14 -> 15.4, arredondando para 16)
   clienteNome: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 4,
   },
   infoText: {
     fontSize: 10,
     marginBottom: 2,
+  },
+  // Item 10: Spacer para empurrar infos para o fundo
+  spacer: {
+    flex: 1,
   },
   section: {
     marginBottom: 20,
@@ -102,10 +113,28 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#64748B',
   },
+  // Item 06: Elaborado por - alinhado a direita
+  elaboradoPor: {
+    textAlign: 'right',
+    marginTop: 20,
+    marginBottom: 20,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  elaboradoPorLabel: {
+    fontSize: 9,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  elaboradoPorText: {
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+  },
 })
 
 interface OrcamentoPDFProps {
-  orcamento: OrcamentoWithItems
+  orcamento: OrcamentoWithItems & { elaborado_por?: string | null }
   logoBase64?: string
 }
 
@@ -136,16 +165,15 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
           </View>
         )}
 
-        {/* Título */}
-        <Text style={styles.title}>ORÇAMENTO</Text>
+        {/* Item 07: Titulo com numero no formato ANO-SEQ */}
+        <Text style={styles.title}>Orcamento No: {orcamento.numero}</Text>
 
-        {/* Dados do Cliente */}
+        {/* Dados do Cliente - Item 08: fonte maior */}
         <View style={styles.clienteInfo}>
           <Text style={styles.clienteNome}>Cliente: {orcamento.cliente}</Text>
           {orcamento.contato && (
             <Text style={styles.infoText}>Contato: {orcamento.contato}</Text>
           )}
-          <Text style={styles.infoText}>Orçamento Nº: {orcamento.numero}</Text>
           {orcamento.validade && (
             <Text style={styles.infoText}>
               Validade: {format(new Date(orcamento.validade), 'dd/MM/yyyy', { locale: ptBR })}
@@ -180,8 +208,10 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
                       <View style={styles.detalhes}>
                         {item.material && <Text>Material: {item.material}</Text>}
                         {item.processos && item.processos.length > 0 && <Text>Processos: {item.processos.join(', ')}</Text>}
-                        {item.prazo_entrega && <Text>Prazo: {item.prazo_entrega}</Text>}
-                        {item.faturamento_minimo && <Text>Fat. Mínimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</Text>}
+                        {item.prazo_entrega && (
+                          <Text>Prazo: {item.prazo_entrega}{!isNaN(Number(item.prazo_entrega)) ? ' dias uteis' : ''}</Text>
+                        )}
+                        {item.faturamento_minimo && <Text>Fat. Minimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</Text>}
                       </View>
                     </View>
                     <Text style={styles.col3}>
@@ -195,22 +225,35 @@ export function OrcamentoPDF({ orcamento, logoBase64 }: OrcamentoPDFProps) {
           </View>
         )}
 
-        {/* Informações Gerais */}
-        {(orcamento.frete || orcamento.prazo_faturamento || orcamento.observacoes) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>INFORMAÇÕES GERAIS</Text>
-            {orcamento.frete && <Text style={styles.infoText}>Frete: {orcamento.frete}</Text>}
-            {orcamento.prazo_faturamento && <Text style={styles.infoText}>Prazo de Faturamento: {orcamento.prazo_faturamento}</Text>}
-            {orcamento.observacoes && <Text style={styles.infoText}>Observações: {orcamento.observacoes}</Text>}
-          </View>
-        )}
-
         {/* Valor Total */}
         {!orcamento.ocultar_valor_total && (
           <View style={styles.totalSection}>
             <Text style={styles.totalText}>
               VALOR TOTAL: {formatCurrency(orcamento.valor_total)}
             </Text>
+          </View>
+        )}
+
+        {/* Item 10: Spacer para empurrar infos gerais e elaborado por para o fundo */}
+        <View style={styles.spacer} />
+
+        {/* Informacoes Gerais - agora proximo ao rodape */}
+        {(orcamento.frete || orcamento.prazo_faturamento || orcamento.observacoes) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>INFORMACOES GERAIS</Text>
+            {orcamento.frete && <Text style={styles.infoText}>Frete: {orcamento.frete}</Text>}
+            {orcamento.prazo_faturamento && <Text style={styles.infoText}>Prazo de Faturamento: {orcamento.prazo_faturamento}</Text>}
+            {orcamento.observacoes && <Text style={styles.infoText}>Observacoes: {orcamento.observacoes}</Text>}
+          </View>
+        )}
+
+        {/* Item 06: Elaborado por - entre infos e rodape, alinhado a direita */}
+        {orcamento.elaborado_por && (
+          <View style={styles.elaboradoPor}>
+            <Text style={styles.elaboradoPorLabel}>Orcamento elaborado por:</Text>
+            {orcamento.elaborado_por.split('\n').map((linha, idx) => (
+              <Text key={idx} style={styles.elaboradoPorText}>{linha}</Text>
+            ))}
           </View>
         )}
 

@@ -293,8 +293,10 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
                           {item.processos && item.processos.length > 0 && (
                             <p>Processos: {item.processos.join(', ')}</p>
                           )}
-                          {item.prazo_entrega && <p>Prazo: {item.prazo_entrega}</p>}
-                          {item.faturamento_minimo && <p>Fat. Mínimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</p>}
+                          {item.prazo_entrega && (
+                            <p>Prazo: {item.prazo_entrega}{!isNaN(Number(item.prazo_entrega)) ? ' dias uteis' : ''}</p>
+                          )}
+                          {item.faturamento_minimo && <p>Fat. Minimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</p>}
                         </div>
                         {/* Botão para ver anexos */}
                         {item.anexos && item.anexos.length > 0 && (
@@ -312,9 +314,12 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {item.peso_unitario ? `${item.peso_unitario} kg` : '-'}
+                      {item.unidade === 'kg' ? '-' : (item.peso_unitario ? `${item.peso_unitario} kg` : '-')}
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.preco_unitario)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(item.preco_unitario)}
+                      {item.unidade === 'kg' ? ' (por kg)' : '/pc'}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

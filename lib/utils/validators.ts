@@ -43,6 +43,8 @@ export const orcamentoSchema = z.object({
   frete: z.string().optional().nullable(),
   validade: z.date().optional().nullable(),
   observacoes: z.string().optional().nullable(),
+  observacoes_internas: z.string().optional().nullable(),
+  elaborado_por: z.string().optional().nullable(),
   prazo_faturamento: z.string().optional().nullable(),
   ocultar_valor_total: z.boolean(),
   status: z.enum([
@@ -56,16 +58,19 @@ export const orcamentoSchema = z.object({
 })
 
 export const itemSchema = z.object({
-  codigo_item: z.string().min(1, 'Código é obrigatório'),
-  item: z.string().min(1, 'Descrição é obrigatória'),
-  unidade: z.string().min(1, 'Unidade é obrigatória'),
-  quantidade: z.number().min(0.01, 'Lote mínimo deve ser maior que zero'),
+  codigo_item: z.string().min(1, 'Codigo e obrigatorio'),
+  item: z.string().min(1, 'Descricao e obrigatoria'),
+  unidade: z.string().min(1, 'Unidade e obrigatoria'),
+  quantidade: z.number().min(0.01, 'Lote minimo deve ser maior que zero'),
   peso_unitario: z.number().optional().nullable(),
-  preco_unitario: z.number().min(0.01, 'Preço é obrigatório'),
+  preco_unitario: z.number().min(0.01, 'Preco e obrigatorio').nullable(),
   material: z.string().optional().nullable(),
   processos: z.array(z.string()).optional().nullable(),
   prazo_entrega: z.string().optional().nullable(),
   faturamento_minimo: z.string().optional().nullable(),
+}).refine((data) => data.preco_unitario !== null && data.preco_unitario >= 0.01, {
+  message: 'Preco e obrigatorio',
+  path: ['preco_unitario'],
 })
 
 export type OrcamentoFormData = z.infer<typeof orcamentoSchema>

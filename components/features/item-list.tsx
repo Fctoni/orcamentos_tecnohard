@@ -150,7 +150,7 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
                     <div className="grid gap-4 md:grid-cols-3 text-sm">
                       <div>
                         <span className="text-muted-foreground">
-                          {item.unidade === 'kg' ? 'Preço por kg:' : 'Preço por peça:'}
+                          {item.unidade === 'kg' ? 'Preco (por kg):' : 'Preco por peca:'}
                         </span>{' '}
                         <span className="font-medium">{formatCurrency(item.preco_unitario)}</span>
                       </div>
@@ -169,12 +169,14 @@ export function ItemList({ orcamentoId, itens, onItensChange }: ItemListProps) {
                       {item.prazo_entrega && (
                         <div>
                           <span className="text-muted-foreground">Prazo:</span>{' '}
-                          <span className="font-medium">{item.prazo_entrega}</span>
+                          <span className="font-medium">
+                            {item.prazo_entrega}{!isNaN(Number(item.prazo_entrega)) ? ' dias uteis' : ''}
+                          </span>
                         </div>
                       )}
                       {item.faturamento_minimo && (
                         <div>
-                          <span className="text-muted-foreground">Fat. Mínimo:</span>{' '}
+                          <span className="text-muted-foreground">Fat. Minimo:</span>{' '}
                           <span className="font-medium">{formatFaturamentoMinimo(item.faturamento_minimo)}</span>
                         </div>
                       )}

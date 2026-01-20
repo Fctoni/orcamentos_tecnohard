@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Edit, GripVertical, Save, X, Upload, ImageIcon, Loader2 } from 'lucide-react'
 import {
@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -143,7 +144,7 @@ function SortableProcessoItem({
 export default function ConfigPage() {
   const { toast } = useToast()
   const { processos, loading: loadingProcessos, saving: savingProcessos, addProcesso, updateProcesso, deleteProcesso, toggleAtivo, reorderProcessos } = useProcessos(true)
-  const { loading: loadingConfig, saving: savingConfig, getLogoUrl, uploadLogo, removeLogo } = useConfiguracoes()
+  const { loading: loadingConfig, saving: savingConfig, getLogoUrl, uploadLogo, removeLogo, getElaboradoPorDefault, setElaboradoPorDefault, getObservacoesDefault, setObservacoesDefault } = useConfiguracoes()
 
   // Estado para edição de processos
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -156,7 +157,35 @@ export default function ConfigPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Estado para "Elaborado por" default
+  const [elaboradoPor, setElaboradoPor] = useState('')
+  const [elaboradoPorChanged, setElaboradoPorChanged] = useState(false)
+  const [elaboradoPorLoaded, setElaboradoPorLoaded] = useState(false)
+
+  // Estado para "Observacoes" default
+  const [observacoesDefault, setObservacoesDefaultState] = useState('')
+  const [observacoesChanged, setObservacoesChanged] = useState(false)
+  const [observacoesLoaded, setObservacoesLoaded] = useState(false)
+
   const logoUrl = getLogoUrl()
+
+  // Carregar valor inicial do "Elaborado por" (apenas uma vez)
+  useEffect(() => {
+    if (!loadingConfig && !elaboradoPorLoaded) {
+      const valor = getElaboradoPorDefault()
+      if (valor) setElaboradoPor(valor)
+      setElaboradoPorLoaded(true)
+    }
+  }, [loadingConfig, elaboradoPorLoaded, getElaboradoPorDefault])
+
+  // Carregar valor inicial das "Observacoes" (apenas uma vez)
+  useEffect(() => {
+    if (!loadingConfig && !observacoesLoaded) {
+      const valor = getObservacoesDefault()
+      if (valor) setObservacoesDefaultState(valor)
+      setObservacoesLoaded(true)
+    }
+  }, [loadingConfig, observacoesLoaded, getObservacoesDefault])
 
   // Configuração do drag & drop
   const sensors = useSensors(
@@ -267,7 +296,12 @@ export default function ConfigPage() {
     const { error } = await uploadLogo(file)
     
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro no upload', description: 'Não foi possível enviar o logo.' })
+      const errorMsg = (error as any)?.message || 'Nao foi possivel enviar o logo.'
+      toast({ 
+        variant: 'destructive', 
+        title: 'Erro no upload', 
+        description: errorMsg,
+      })
     } else {
       toast({ title: 'Logo atualizado!' })
       setLogoPreview(null)
@@ -289,6 +323,38 @@ export default function ConfigPage() {
   const handleCancelLogoPreview = () => {
     setLogoPreview(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  // Handlers para "Elaborado por"
+  const handleElaboradoPorChange = (value: string) => {
+    setElaboradoPor(value)
+    setElaboradoPorChanged(true)
+  }
+
+  const handleSaveElaboradoPor = async () => {
+    const { error } = await setElaboradoPorDefault(elaboradoPor || null)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: 'Nao foi possivel salvar o responsavel padrao.' })
+    } else {
+      toast({ title: 'Responsavel padrao atualizado!' })
+      setElaboradoPorChanged(false)
+    }
+  }
+
+  // Handlers para "Observacoes"
+  const handleObservacoesChange = (value: string) => {
+    setObservacoesDefaultState(value)
+    setObservacoesChanged(true)
+  }
+
+  const handleSaveObservacoes = async () => {
+    const { error } = await setObservacoesDefault(observacoesDefault || null)
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: 'Nao foi possivel salvar as observacoes padrao.' })
+    } else {
+      toast({ title: 'Observacoes padrao atualizadas!' })
+      setObservacoesChanged(false)
+    }
   }
 
   if (loadingProcessos || loadingConfig) {
@@ -377,6 +443,64 @@ export default function ConfigPage() {
                 Recomendado: fundo transparente, proporção ~3:1.
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seção: Responsável pelo Orçamento */}
+      <Card>
+        <CardHeader>
+          <CardTitle>✍️ Responsavel pelo Orcamento (padrao)</CardTitle>
+          <CardDescription>
+            Texto padrao que aparecera no campo &quot;Elaborado por&quot; em novos orcamentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder="Ex: Jose Adair Giubel&#10;Fone / email: (54) 3218-2168 / email@empresa.com"
+            value={elaboradoPor}
+            onChange={(e) => handleElaboradoPorChange(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              Texto livre, multiplas linhas. Sera usado como padrao em novos orcamentos.
+            </p>
+            {elaboradoPorChanged && (
+              <Button onClick={handleSaveElaboradoPor} disabled={savingConfig}>
+                {savingConfig && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" /> Salvar
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seção: Observações Padrão */}
+      <Card>
+        <CardHeader>
+          <CardTitle>📝 Observacoes Padrao</CardTitle>
+          <CardDescription>
+            Texto padrao que aparecera no campo &quot;Observacoes&quot; ao criar novos orcamentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder="Ex: O faturamento minimo considera lote de mesmo material e mesma especificacao.&#10;As pecas enviadas para tratamento termico terao prazo de 30 dias apos encerrado o processo para serem retiradas."
+            value={observacoesDefault}
+            onChange={(e) => handleObservacoesChange(e.target.value)}
+            className="min-h-[120px]"
+          />
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              Texto livre, multiplas linhas. Aparece no PDF do orcamento.
+            </p>
+            {observacoesChanged && (
+              <Button onClick={handleSaveObservacoes} disabled={savingConfig}>
+                {savingConfig && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" /> Salvar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -18,6 +18,8 @@ export interface Database {
           frete: string | null
           validade: string | null
           observacoes: string | null
+          observacoes_internas: string | null
+          elaborado_por: string | null
           status: OrcamentoStatus
           ocultar_valor_total: boolean
           valor_total: number
@@ -35,6 +37,8 @@ export interface Database {
           frete?: string | null
           validade?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          elaborado_por?: string | null
           status?: OrcamentoStatus
           ocultar_valor_total?: boolean
           valor_total?: number
@@ -52,6 +56,8 @@ export interface Database {
           frete?: string | null
           validade?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          elaborado_por?: string | null
           status?: OrcamentoStatus
           ocultar_valor_total?: boolean
           valor_total?: number

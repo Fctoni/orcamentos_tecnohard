@@ -37,7 +37,8 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
       unidade: initialData?.unidade || 'kg',
       quantidade: initialData?.quantidade || 1, // Valor padrão fixo
       peso_unitario: initialData?.peso_unitario || null,
-      preco_unitario: initialData?.preco_unitario || 0,
+      // Item 03: Preço inicia vazio (null) em vez de 0 para novos itens
+      preco_unitario: initialData ? initialData.preco_unitario : null,
       material: initialData?.material || '',
       processos: initialData?.processos || [],
       prazo_entrega: initialData?.prazo_entrega || '',
@@ -186,9 +187,20 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Prazo de Entrega</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: 15 dias úteis" {...field} value={field.value || ''} />
-                </FormControl>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      step="1"
+                      min="1"
+                      placeholder="Ex: 15" 
+                      className="w-24"
+                      value={field.value || ''} 
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">dias uteis</span>
+                </div>
                 <FormMessage />
               </FormItem>
             )}

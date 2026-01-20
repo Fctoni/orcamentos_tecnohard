@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Skeleton } from '@/components/ui/skeleton'
 import { ItemList } from './item-list'
 import { useOrcamento } from '@/lib/hooks/use-orcamento'
+import { useConfiguracoes } from '@/lib/hooks/use-configuracoes'
 import { useToast } from '@/hooks/use-toast'
 import { orcamentoSchema, type OrcamentoFormData } from '@/lib/utils/validators'
 import { formatCurrency } from '@/lib/utils/format'
@@ -38,6 +39,7 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
   const isEditing = !!currentOrcamentoId
   
   const { orcamento, loading, saving, createOrcamento, updateOrcamento } = useOrcamento(currentOrcamentoId)
+  const { getElaboradoPorDefault, getObservacoesDefault, loading: loadingConfig } = useConfiguracoes()
   const [itens, setItens] = useState<OrcamentoItemWithAnexos[]>([])
   const [valorTotal, setValorTotal] = useState(0)
   const [autoSaving, setAutoSaving] = useState(false)
@@ -54,11 +56,28 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
       frete: '',
       validade: null,
       observacoes: '',
+      observacoes_internas: '',
+      elaborado_por: '',
       prazo_faturamento: null,
       ocultar_valor_total: true,
       status: 'cadastrado',
     },
   })
+
+  // Preencher defaults quando for novo orçamento e config carregar
+  useEffect(() => {
+    if (!initialOrcamentoId && !loadingConfig) {
+      const elaboradoPorDefault = getElaboradoPorDefault()
+      const observacoesDefault = getObservacoesDefault()
+      
+      if (observacoesDefault) {
+        form.setValue('observacoes', observacoesDefault)
+      }
+      if (elaboradoPorDefault) {
+        form.setValue('elaborado_por', elaboradoPorDefault)
+      }
+    }
+  }, [initialOrcamentoId, loadingConfig, getElaboradoPorDefault, getObservacoesDefault, form])
 
   // Preencher form quando carregar orçamento (mas não logo após criar)
   useEffect(() => {
@@ -77,6 +96,8 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
         frete: orcamento.frete || '',
         validade: orcamento.validade ? new Date(orcamento.validade) : null,
         observacoes: orcamento.observacoes || '',
+        observacoes_internas: orcamento.observacoes_internas || '',
+        elaborado_por: orcamento.elaborado_por || '',
         prazo_faturamento: orcamento.prazo_faturamento || null,
         ocultar_valor_total: orcamento.ocultar_valor_total,
         status: orcamento.status,
@@ -133,8 +154,8 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
       window.history.replaceState(null, '', `/orcamentos/${novoOrcamento.id}/editar`)
       
       toast({ 
-        title: '✨ Orçamento criado!',
-        description: 'Agora você pode adicionar itens.',
+        title: '✨ Orcamento criado!',
+        description: 'Agora voce pode adicionar itens.',
       })
       
       // Sinaliza para focar no campo contato após a re-renderização
@@ -143,7 +164,44 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
       autoSaveTriggered.current = false
       toast({
         variant: 'destructive',
-        title: 'Erro ao criar orçamento',
+        title: 'Erro ao criar orcamento',
+        description: error.message,
+      })
+    } finally {
+      setAutoSaving(false)
+    }
+  }
+
+  // Auto-salvar campo individual ao perder foco (para orcamentos ja criados)
+  const handleFieldAutoSave = async (fieldName: keyof OrcamentoFormData) => {
+    // So auto-salva se o orcamento ja existe
+    if (!currentOrcamentoId || saving || autoSaving) {
+      return
+    }
+
+    setAutoSaving(true)
+    
+    try {
+      const formData = form.getValues()
+      const updateData: Record<string, any> = {}
+      
+      // Pega apenas o campo que foi alterado
+      if (fieldName === 'validade') {
+        updateData[fieldName] = formData.validade?.toISOString().split('T')[0] || null
+      } else {
+        updateData[fieldName] = formData[fieldName]
+      }
+      
+      const { error } = await updateOrcamento(updateData)
+      
+      if (error) throw error
+      
+      // Feedback discreto - nao mostra toast para cada campo
+      console.log(`Campo ${fieldName} salvo automaticamente`)
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar',
         description: error.message,
       })
     } finally {
@@ -227,14 +285,21 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
             )}
           />
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/* Indicador de auto-save */}
+            {autoSaving && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Salvando...
+              </span>
+            )}
             {isEditing && (
               <Button type="button" variant="outline" onClick={() => router.push(`/orcamentos/${currentOrcamentoId}`)}>
                 <Eye className="mr-2 h-4 w-4" /> Visualizar
               </Button>
             )}
             <Button type="submit" disabled={saving || autoSaving}>
-              {(saving || autoSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
               Salvar
             </Button>
@@ -284,6 +349,10 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
                         contatoInputRef.current = el
                       }}
                       value={field.value || ''} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('contato')
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -358,7 +427,15 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
                 <FormItem>
                   <FormLabel>Frete</FormLabel>
                   <FormControl>
-                    <Input placeholder="CIF, FOB ou texto livre" {...field} value={field.value || ''} />
+                    <Input 
+                      placeholder="CIF, FOB ou texto livre" 
+                      {...field} 
+                      value={field.value || ''} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('frete')
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -386,7 +463,11 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
                       <Calendar
                         mode="single"
                         selected={field.value || undefined}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date)
+                          // Auto-save apos selecionar data (com pequeno delay para garantir que o valor foi atualizado)
+                          setTimeout(() => handleFieldAutoSave('validade'), 100)
+                        }}
                         disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
@@ -404,9 +485,13 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
                   <FormControl>
                     <Input 
                       type="text" 
-                      placeholder="Ex: 30 dias, à vista, etc."
+                      placeholder="Ex: 30 dias, a vista, etc."
                       {...field}
                       value={field.value ?? ''}
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('prazo_faturamento')
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -418,10 +503,77 @@ export function OrcamentoForm({ orcamentoId: initialOrcamentoId }: OrcamentoForm
               name="observacoes"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Observações</FormLabel>
+                  <FormLabel>Observacoes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Observações gerais..." className="min-h-[100px]" {...field} value={field.value || ''} />
+                    <Textarea 
+                      placeholder="Observacoes gerais..." 
+                      className="min-h-[100px]" 
+                      {...field} 
+                      value={field.value || ''} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('observacoes')
+                      }}
+                    />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="elaborado_por"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>✍️ Elaborado por</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Ex: Jose Adair Giubel&#10;Fone / email: (54) 3218-2168 / email@empresa.com" 
+                      className="min-h-[80px]" 
+                      {...field} 
+                      value={field.value || ''} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('elaborado_por')
+                      }}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Aparece no PDF. Default vem das configuracoes, editavel por orcamento.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Seção: Observações Internas */}
+        <Card>
+          <CardHeader>
+            <CardTitle>📝 Observacoes Internas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="observacoes_internas"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Anotacoes internas sobre este orcamento..." 
+                      className="min-h-[100px]" 
+                      {...field} 
+                      value={field.value || ''} 
+                      onBlur={(e) => {
+                        field.onBlur()
+                        handleFieldAutoSave('observacoes_internas')
+                      }}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ Uso interno - NAO aparece no PDF
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
