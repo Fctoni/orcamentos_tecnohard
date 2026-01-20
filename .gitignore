@@ -1,7 +1,23 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# ===========================================
+# ARQUIVOS SENSIVEIS - NAO VERSIONAR
+# ===========================================
+senha supabase
+*.env
+.env*
+
+# ===========================================
+# PASTAS TEMPORARIAS/PESSOAIS
+# ===========================================
+zzz - FELIPE - VER - zzz/
+
+# ===========================================
+# NEXT.JS / NODE (pasta orcamentos-tecnohard)
+# ===========================================
+
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,14 +27,14 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # production
-/build
+build/
 
 # misc
 .DS_Store
@@ -29,9 +45,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
 
 # vercel
 .vercel
