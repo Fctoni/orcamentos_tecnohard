@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { 
   Eye, Edit, Trash2, FileDown, Copy, MoreHorizontal,
-  ArrowUpDown, ArrowUp, ArrowDown, FileText
+  ArrowUpDown, ArrowUp, ArrowDown, FileText, ChevronDown, ChevronUp
 } from 'lucide-react'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -37,8 +37,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from './status-badge'
 import { useToast } from '@/hooks/use-toast'
-import { Orcamento, OrcamentoStatus, STATUS_CONFIG } from '@/lib/types/app'
+import { Orcamento, OrcamentoItem, OrcamentoStatus, STATUS_CONFIG } from '@/lib/types/app'
 import { formatCurrency } from '@/lib/utils/format'
+import { createClient } from '@/lib/supabase/client'
 
 interface OrcamentosTableProps {
   orcamentos: Orcamento[]
@@ -71,7 +72,48 @@ export function OrcamentosTable({
 }: OrcamentosTableProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = createClient()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  
+  // Estados para expansao de itens
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [itensCache, setItensCache] = useState<Record<string, OrcamentoItem[]>>({})
+  const [loadingItens, setLoadingItens] = useState<Set<string>>(new Set())
+
+  const loadItens = async (orcamentoId: string) => {
+    setLoadingItens(prev => new Set(prev).add(orcamentoId))
+    
+    const { data, error } = await supabase
+      .from('orcamento_itens')
+      .select('*')
+      .eq('orcamento_id', orcamentoId)
+      .order('ordem')
+    
+    if (!error && data) {
+      setItensCache(prev => ({ ...prev, [orcamentoId]: data }))
+    }
+    
+    setLoadingItens(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(orcamentoId)
+      return newSet
+    })
+  }
+
+  const toggleExpand = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    const newExpanded = new Set(expandedIds)
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id)
+    } else {
+      newExpanded.add(id)
+      if (!itensCache[id]) {
+        await loadItens(id)
+      }
+    }
+    setExpandedIds(newExpanded)
+  }
 
   const handleDelete = async () => {
     if (!deleteId) return
@@ -212,10 +254,49 @@ export function OrcamentosTable({
                 <div className="flex items-center gap-2">
                   <StatusBadge status={orcamento.status as OrcamentoStatus} />
                   <div onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => toggleExpand(orcamento.id, e)}
+                      aria-label={expandedIds.has(orcamento.id) ? 'Recolher itens' : 'Expandir itens'}
+                    >
+                      {expandedIds.has(orcamento.id) 
+                        ? <ChevronUp className="h-4 w-4" />
+                        : <ChevronDown className="h-4 w-4" />
+                      }
+                    </Button>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
                     <ActionsMenu orcamento={orcamento} />
                   </div>
                 </div>
               </div>
+              
+              {/* Itens expandidos - Mobile */}
+              {expandedIds.has(orcamento.id) && (
+                <div className="mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+                  {loadingItens.has(orcamento.id) ? (
+                    <div className="text-center text-muted-foreground py-2 text-sm">Carregando...</div>
+                  ) : !itensCache[orcamento.id] || itensCache[orcamento.id].length === 0 ? (
+                    <div className="text-center text-muted-foreground py-2 text-sm">Nenhum item cadastrado</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {itensCache[orcamento.id].map(item => (
+                        <div key={item.id} className="flex justify-between items-start text-sm bg-muted/50 rounded p-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-mono text-xs text-muted-foreground">{item.codigo_item}</span>
+                            <p className="truncate">{item.item}</p>
+                          </div>
+                          <span className="ml-2 whitespace-nowrap font-medium">
+                            {formatCurrency(item.preco_unitario)}/{item.unidade}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <span className="text-sm text-muted-foreground">
                   {format(new Date(orcamento.created_at), 'dd/MM/yyyy', { locale: ptBR })}
@@ -264,13 +345,14 @@ export function OrcamentosTable({
                   Valor Total <SortIcon column="valor_total" />
                 </Button>
               </TableHead>
+              <TableHead className="w-[50px]"></TableHead>
               <TableHead className="w-[60px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orcamentos.map((orcamento, index) => (
+              <React.Fragment key={orcamento.id}>
               <TableRow
-                key={orcamento.id}
                 ref={index === orcamentos.length - 1 ? lastElementRef : undefined}
                 className={`cursor-pointer hover:bg-secondary/50 ${selectedIds.includes(orcamento.id) ? 'bg-secondary/30' : ''}`}
                 onClick={() => router.push(`/orcamentos/${orcamento.id}`)}
@@ -292,9 +374,57 @@ export function OrcamentosTable({
                 </TableCell>
                 <TableCell>{formatCurrency(orcamento.valor_total)}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => toggleExpand(orcamento.id, e)}
+                    aria-label={expandedIds.has(orcamento.id) ? 'Recolher itens' : 'Expandir itens'}
+                  >
+                    {expandedIds.has(orcamento.id) 
+                      ? <ChevronUp className="h-4 w-4" />
+                      : <ChevronDown className="h-4 w-4" />
+                    }
+                  </Button>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <ActionsMenu orcamento={orcamento} />
                 </TableCell>
               </TableRow>
+              {expandedIds.has(orcamento.id) && (
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableCell colSpan={9} className="p-4">
+                    {loadingItens.has(orcamento.id) ? (
+                      <div className="text-center text-muted-foreground py-2">Carregando...</div>
+                    ) : !itensCache[orcamento.id] || itensCache[orcamento.id].length === 0 ? (
+                      <div className="text-center text-muted-foreground py-2">Nenhum item cadastrado</div>
+                    ) : (
+                      <div className="ml-8">
+                        <Table className="w-auto">
+                          <TableHeader>
+                            <TableRow className="!border-b-2 border-black">
+                              <TableHead className="text-base font-bold text-center w-[150px]">Código</TableHead>
+                              <TableHead className="text-base font-bold text-center min-w-[250px]">Descrição</TableHead>
+                              <TableHead className="text-base font-bold text-center w-[150px]">Valor</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {itensCache[orcamento.id].map(item => (
+                                <TableRow key={item.id}>
+                                <TableCell className="font-mono text-sm text-center">{item.codigo_item}</TableCell>
+                                <TableCell className="text-center">{item.item}</TableCell>
+                                <TableCell className="font-100px text-center">
+                                  {formatCurrency(item.preco_unitario)}/{item.unidade}
+                                </TableCell>  
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </React.Fragment>
             ))}
           </TableBody>
         </Table>

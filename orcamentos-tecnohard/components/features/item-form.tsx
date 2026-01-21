@@ -50,6 +50,13 @@ export function ItemForm({ initialData, onSubmit, onCancel, loading }: ItemFormP
   const unidadeSelecionada = form.watch('unidade')
 
   const handleSubmit = (data: ItemFormData) => {
+    // Ordenar processos conforme hierarquia (drag & drop) antes de salvar
+    if (data.processos && data.processos.length > 0) {
+      const ordemMap = new Map(processos.map(p => [p.nome, p.ordem]))
+      data.processos = [...data.processos].sort(
+        (a, b) => (ordemMap.get(a) || 999) - (ordemMap.get(b) || 999)
+      )
+    }
     onSubmit(data)
   }
 

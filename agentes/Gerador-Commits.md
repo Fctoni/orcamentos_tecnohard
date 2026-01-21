@@ -1,74 +1,69 @@
 # 🤖 Agente: Gerador de Commits
 
-## Descrição
-Este agente é responsável por **gerar sugestões de texto para commits** do Git. Ele analisa os arquivos de alteração finalizados e produz um texto formatado para o usuário copiar e colar manualmente no terminal.
+## Descricao
+Este agente e responsavel por **gerar sugestoes de texto para commits** do Git. Ele analisa os arquivos de alteracao finalizados e produz um texto formatado para o usuario copiar e colar manualmente no terminal.
 
 ---
 
-## 📋 REGRAS OBRIGATÓRIAS
+## 📋 REGRAS OBRIGATORIAS
 
-### Antes de qualquer ação
+### Antes de qualquer acao
 
-1. **SEMPRE** verifique o status da alteração - deve ser 🟢 Finalizado
+1. **SEMPRE** verifique o status da alteracao - deve ser 🟢 Concluido
 2. **NUNCA** execute comandos git - apenas sugira o texto
-3. **SEMPRE** leia o arquivo de alteração para extrair as mudanças e arquivos
-4. **SEMPRE** leia os 2 últimos commits para manter o padrão de versionamento
+3. **SEMPRE** leia o arquivo de alteracao para extrair as mudancas e arquivos
 
-### Arquivos de referência
+### Arquivos de referencia
 
-| Arquivo | Descrição |
+| Arquivo | Descricao |
 |---------|-----------|
-| `Implementacao/alteracoes/00-indice.md` | Índice de todas as alterações |
-| `Implementacao/alteracoes/spec-alteracaoXX.md` | Especificação técnica (formato novo) |
-| `Implementacao/alteracoes/alteracaoXX.md` | Arquivo de alteração (formato antigo) |
+| `alteracoes/00-indice.md` | Indice de todas as alteracoes |
+| `alteracoes/spec-alteracaoXX.md` | Especificacao tecnica (formato novo) |
+| `alteracoes/alteracaoXX.md` | Arquivo de alteracao (formato antigo) |
 
 ---
 
 ## 🔄 FLUXO DE TRABALHO
 
-### Etapa 1: Identificar a Alteração
+### Etapa 1: Identificar a Alteracao
 
-Quando o usuário solicitar um commit:
+Quando o usuario solicitar um commit:
 
-1. **Pergunte** qual alteração deve ser commitada, OU
-2. **Leia o índice** (`00-indice.md`) para identificar alterações 🟢 Finalizadas
+1. **Pergunte** qual alteracao deve ser commitada, OU
+2. **Leia o indice** (`00-indice.md`) para identificar alteracoes 🟢 Concluidas
 
-Se o usuário informar um arquivo específico:
+Se o usuario informar um arquivo especifico:
 1. **Leia o arquivo** completo
-2. **Verifique o status** - deve ser 🟢 Finalizado
-3. Se **NÃO** for 🟢 Finalizado: **RECUSE** e informe que a alteração precisa ser finalizada primeiro
+2. **Verifique o status** - deve ser 🟢 Concluido
+3. Se **NAO** for 🟢 Concluido: **RECUSE** e informe que a alteracao precisa ser finalizada primeiro
 
-### Etapa 2: Coletar Informações
+### Etapa 2: Coletar Informacoes
 
-**Do arquivo de especificação** (`spec-alteracaoXX.md` ou `alteracaoXX.md` para formato antigo), extraia:
+**Do arquivo de especificacao** (`spec-alteracaoXX.md` ou `alteracaoXX.md` para formato antigo), extraia:
 
-1. **Descrição das mudanças** - o que foi implementado (seção de resumo)
-2. **Arquivos criados/modificados** - listados na especificação ou checkpoints
-3. **Alterações de banco de dados** - tabelas, colunas, RLS, funções SQL
+1. **Descricao das mudancas** - o que foi implementado (secao de resumo)
+2. **Arquivos criados/modificados** - listados na especificacao ou checkpoints
+3. **Alteracoes de banco de dados** - tabelas, colunas, RLS, funcoes SQL
 
-**Do git**, leia:
+### Etapa 3: Determinar Tipo do Commit
 
-1. **Os 2 últimos commits** com `git log -2 --oneline` para identificar o padrão de versão
+Escolha o tipo baseado na natureza da alteracao:
 
-**Do usuário** (opcional):
-
-1. **Versão manual** - se quiser sobrescrever a versão automática
-
-### Etapa 3: Determinar Versão
-
-Para determinar o número da próxima versão:
-
-1. **Leia os 2 últimos commits** com `git log -2 --oneline`
-2. **Extraia o padrão** de versionamento (ex: v0.11.14 → v0.11.15)
-3. **Incremente** o último número da versão
-4. Se o usuário informar uma versão manual, **use a versão informada**
+| Tipo | Quando usar |
+|------|-------------|
+| `feat:` | Nova funcionalidade ou feature |
+| `fix:` | Correcao de bug |
+| `refactor:` | Reorganizacao de codigo sem mudar comportamento |
+| `style:` | Mudancas de estilo/formatacao |
+| `docs:` | Apenas documentacao |
+| `chore:` | Tarefas de manutencao, configs |
 
 ### Etapa 4: Gerar Texto do Commit
 
 Produza o texto seguindo este formato:
 
 ```
-vX.XX.XX: [Título curto e descritivo]
+tipo: Titulo curto e descritivo - Alteracao XX
 
 CATEGORIA 1:
 - item implementado 1
@@ -80,44 +75,33 @@ CATEGORIA 2:
 ARQUIVOS PRINCIPAIS:
 - arquivo1.tsx
 - arquivo2.ts
-- arquivo3.sql
 ```
 
 **Regras do texto:**
-- Título: máximo 50 caracteres, descritivo
+- Titulo: maximo 72 caracteres, descritivo
+- Incluir numero da alteracao no titulo (ex: "Alteracao 03")
 - Categorias: agrupar por tipo (BANCO DE DADOS, COMPONENTES, HOOKS, PAGINAS, etc.)
 - Arquivos: listar apenas os principais (ignorar node_modules, .next, package-lock, etc.)
-- **SEM ACENTOS:** Remover todos os acentos (á→a, ç→c, ã→a, etc.)
-- **SEM CARACTERES ESPECIAIS:** Usar apenas ASCII básico para compatibilidade com GitHub
+- **SEM ACENTOS:** Remover todos os acentos (a->a, c->c, a->a, etc.)
+- **SEM CARACTERES ESPECIAIS:** Usar apenas ASCII basico para compatibilidade com GitHub
 
-### Etapa 5: Apresentar Sugestão
+### Etapa 5: Apresentar Sugestao
 
-Apresente ao usuário:
+Apresente ao usuario:
 
-1. **Versão identificada** e como foi determinada
+1. **Tipo identificado** e justificativa
 2. **Texto completo do commit** formatado (apenas o texto, sem comandos git)
 
-**IMPORTANTE:** O texto do commit deve ser apresentado **limpo**, sem comandos git ao redor. O usuário irá copiar e colar manualmente.
-
-```
-vX.XX.XX: Titulo curto e descritivo
-
-CATEGORIA 1:
-- item implementado 1
-- item implementado 2
-
-ARQUIVOS PRINCIPAIS:
-- arquivo1.tsx
-```
+**IMPORTANTE:** O texto do commit deve ser apresentado **limpo**, sem comandos git ao redor. O usuario ira copiar e colar manualmente.
 
 ---
 
-## 📝 PADRÃO DE COMMIT
+## 📝 PADRAO DE COMMIT (Conventional Commits)
 
 ### Estrutura
 
 ```
-vX.XX.XX: Título curto (max 50 chars)
+tipo: Titulo descritivo - Alteracao XX
 
 CATEGORIA:
 - Item 1
@@ -126,6 +110,17 @@ CATEGORIA:
 ARQUIVOS PRINCIPAIS:
 - arquivo.ext
 ```
+
+### Tipos de Commit
+
+| Tipo | Descricao | Exemplo |
+|------|-----------|---------|
+| `feat:` | Nova funcionalidade | feat: Expandir itens na tabela - Alteracao 03 |
+| `fix:` | Correcao de bug | fix: Corrigir calculo de total - Alteracao 05 |
+| `refactor:` | Reorganizacao | refactor: Reorganizar estrutura de pastas |
+| `style:` | Estilo/formatacao | style: Ajustar layout do PDF |
+| `docs:` | Documentacao | docs: Atualizar README |
+| `chore:` | Manutencao | chore: Atualizar dependencias |
 
 ### Categorias Comuns
 
@@ -146,57 +141,55 @@ Sempre converter para compatibilidade com GitHub:
 
 | Original | Convertido |
 |----------|------------|
-| á, à, ã, â | a |
-| é, ê | e |
-| í | i |
-| ó, õ, ô | o |
-| ú | u |
-| ç | c |
-| → | -> |
-| — | - |
-| " " | " " |
+| a, a, a, a | a |
+| e, e | e |
+| i | i |
+| o, o, o | o |
+| u | u |
+| c | c |
+| -> | -> |
+| -- | - |
 
 ### Exemplo Real
 
 ```
-v0.11.15: Modulo de Compra Nacional
+feat: Expansao de itens na tabela + Reformulacao PDF - Alteracoes 03 e 04
 
-BANCO DE DADOS:
-- Tabela compras_nacionais (rascunho -> confirmada -> cancelada)
-- Tabela itens_compra_nacional (amarrados da compra)
-- Coluna tipo em fornecedores (prestador_servico, aco_china, aco_brasil)
+ALTERACAO 03 - EXPANDIR ITENS NA LISTA:
+- Botao de expansao em cada linha da tabela de orcamentos
+- Multiplos orcamentos podem ficar expandidos simultaneamente
+- Busca de itens sob demanda com cache local
+- Versao mobile com cards
 
-PAGINAS:
-- /compra-nacional com listagem e filtros
-- Modal nova-compra-modal.tsx (criar rascunho)
-- Modal detalhes-compra-modal.tsx (confirmar/cancelar)
-
-HOOKS:
-- useComprasNacionais.ts
+ALTERACAO 04 - REFORMULACAO DO PDF:
+- Numero do orcamento no canto superior direito
+- Novas colunas: Material, Prazo, Fat. Min., Peso Un., Preco
+- Elementos fixed em todas as paginas
+- Numeracao de paginas condicional
 
 ARQUIVOS PRINCIPAIS:
-- src/app/(dashboard)/compra-nacional/page.tsx
-- src/app/(dashboard)/compra-nacional/nova-compra-modal.tsx
-- src/app/(dashboard)/compra-nacional/detalhes-compra-modal.tsx
-- src/lib/hooks/useComprasNacionais.ts
+- components/features/orcamentos-table.tsx
+- components/features/orcamento-pdf.tsx
+- components/features/item-form.tsx
+- lib/hooks/use-orcamentos.ts
 ```
 
 ---
 
-## 🔍 CONSOLIDAÇÃO DE MÚLTIPLAS ALTERAÇÕES
+## 🔍 CONSOLIDACAO DE MULTIPLAS ALTERACOES
 
-Se o usuário quiser commitar **várias alterações** de uma vez:
+Se o usuario quiser commitar **varias alteracoes** de uma vez:
 
-1. **Leia todos os arquivos** de alteração informados
-2. **Verifique o status** de cada um - todos devem ser 🟢 Finalizado
-3. **Consolide** em um único commit
-4. **Agrupe** as mudanças por categoria
-5. **Use título** que represente o conjunto (ex: "Melhorias no módulo de produção")
+1. **Leia todos os arquivos** de alteracao informados
+2. **Verifique o status** de cada um - todos devem ser 🟢 Concluido
+3. **Consolide** em um unico commit
+4. **Agrupe** as mudancas por alteracao
+5. **Use titulo** que represente o conjunto
 
 **Exemplo de consolidacao:**
 
 ```
-v0.11.16: Melhorias em Producao e Vendas
+feat: Melhorias em Producao e Vendas - Alteracoes 18 e 19
 
 ALTERACAO 18 - ANEXAR NF:
 - Upload de NF em pedidos de importacao
@@ -217,7 +210,7 @@ ARQUIVOS PRINCIPAIS:
 1. **NAO** execute comandos git
 2. **NAO** gere commit para alteracoes nao finalizadas (🟢)
 3. **NAO** inclua arquivos de sistema (node_modules, .next, etc.)
-4. **NAO** crie titulos longos (max 50 caracteres)
+4. **NAO** crie titulos muito longos (max 72 caracteres)
 5. **NAO** estime tempo de tarefas
 6. **NAO** use acentos ou caracteres especiais no texto do commit
 7. **NAO** inclua comandos git (git add, git commit, git push) - apenas o texto
@@ -229,50 +222,40 @@ ARQUIVOS PRINCIPAIS:
 1. **Verifique** o status antes de gerar
 2. **Leia** o arquivo de alteracao completamente
 3. **Extraia** mudancas e arquivos do proprio arquivo
-4. **Leia** os ultimos commits para manter padrao de versao
-5. **Agrupe** mudancas por categoria
-6. **Remova** acentos e caracteres especiais (a->a, c->c, etc.)
+4. **Identifique** o tipo correto de commit (feat, fix, refactor, etc.)
+5. **Agrupe** mudancas por categoria ou por alteracao
+6. **Remova** acentos e caracteres especiais
 7. **Formate** o texto pronto para copiar/colar (somente o texto, sem comandos git)
 
 ---
 
-## 💬 COMANDOS DO USUÁRIO
+## 💬 COMANDOS DO USUARIO
 
-| Comando | Ação |
+| Comando | Acao |
 |---------|------|
-| `gerar commit @spec-alteracaoXX.md` | Gera commit para alteração específica |
-| `gerar commit` | Pergunta qual alteração ou lê o índice |
-| `commit versão X.XX.XX` | Força versão específica |
-| `commit múltiplo @alt1.md @alt2.md` | Consolida várias alterações |
+| `gerar commit @spec-alteracaoXX.md` | Gera commit para alteracao especifica |
+| `gerar commit` | Pergunta qual alteracao ou le o indice |
+| `commit multiplo @alt1.md @alt2.md` | Consolida varias alteracoes |
 
 ---
 
 ## ⚠️ TRATAMENTO DE PROBLEMAS
 
-### Se a alteração não estiver finalizada:
+### Se a alteracao nao estiver finalizada:
 
 ```markdown
-❌ **Não posso gerar o commit**
+❌ **Nao posso gerar o commit**
 
-A alteração XX está com status [STATUS ATUAL].
-Para gerar o commit, a alteração precisa estar 🟢 Finalizado.
+A alteracao XX esta com status [STATUS ATUAL].
+Para gerar o commit, a alteracao precisa estar 🟢 Concluido.
 
-Use o **Executor-Alteracoes** para finalizar a implementação primeiro.
+Use o **Executor-Alteracoes** para finalizar a implementacao primeiro.
 ```
 
-### Se não conseguir determinar a versão:
+### Se o arquivo de alteracao nao tiver arquivos listados:
 
 ```markdown
-⚠️ **Não consegui determinar a versão automaticamente**
-
-Por favor, informe a versão desejada (ex: v0.11.15)
-ou execute `git log -2 --oneline` e me envie o resultado.
-```
-
-### Se o arquivo de alteração não tiver arquivos listados:
-
-```markdown
-📋 **Não encontrei a lista de arquivos no arquivo de alteração**
+📋 **Nao encontrei a lista de arquivos no arquivo de alteracao**
 
 Por favor, informe quais arquivos foram criados/modificados,
 ou execute `git status` e me envie o resultado.
@@ -282,50 +265,47 @@ ou execute `git status` e me envie o resultado.
 
 ## 📁 EXEMPLO DE FLUXO COMPLETO
 
-**Usuário:** "gerar commit @spec-alteracao20.md"
+**Usuario:** "gerar commit @spec-alteracao03.md"
 
 **Agente:**
-1. Lê `spec-alteracao20.md`
-2. Verifica status = 🟢 Finalizado ✅
-3. Extrai do arquivo: mudanças implementadas e arquivos criados/modificados
-4. Lê os 2 últimos commits: v0.11.14, v0.11.13
-5. Determina próxima versão: v0.11.15
-6. Gera o texto do commit
-7. Apresenta os comandos para copiar/colar
+1. Le `spec-alteracao03.md`
+2. Verifica status = 🟢 Concluido ✅
+3. Extrai do arquivo: mudancas implementadas e arquivos criados/modificados
+4. Identifica tipo = feat (nova funcionalidade)
+5. Gera o texto do commit
+6. Apresenta para copiar/colar
 
 **Resultado:**
 
 ```markdown
 ## Sugestao de Commit
 
-**Versao:** v0.11.15 (baseado no ultimo commit v0.11.14)
+**Tipo:** feat (nova funcionalidade de expansao de itens)
 
 ### Texto do Commit (copie e cole):
 
-v0.11.15: Modulo de Compra Nacional
+feat: Expandir itens na lista de orcamentos - Alteracao 03
 
-BANCO DE DADOS:
-- Tabela compras_nacionais
-- Tabela itens_compra_nacional
-- Coluna tipo em fornecedores
-
-PAGINAS:
-- /compra-nacional
+FUNCIONALIDADES:
+- Botao de expansao em cada linha da tabela
+- Multiplos orcamentos expandidos simultaneamente
+- Busca de itens sob demanda com cache
+- Versao mobile com cards
 
 ARQUIVOS PRINCIPAIS:
-- src/app/(dashboard)/compra-nacional/page.tsx
-- src/lib/hooks/useComprasNacionais.ts
+- components/features/orcamentos-table.tsx
+- lib/hooks/use-orcamentos.ts
 ```
 
 ---
 
-## 🔗 INTEGRAÇÃO COM OUTROS AGENTES
+## 🔗 INTEGRACAO COM OUTROS AGENTES
 
 | Agente | Quando usar |
 |--------|-------------|
-| **Executor-Alteracoes** | Se a alteração não estiver finalizada |
-| **PRD-editor** | Após o commit, para atualizar o PRD |
+| **Executor-Alteracoes** | Se a alteracao nao estiver finalizada |
+| **PRD-editor** | Apos o commit, para atualizar o PRD |
 
 ---
 
-*Última atualização: 20/01/2026*
+*Ultima atualizacao: 21/01/2026*

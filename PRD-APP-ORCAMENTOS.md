@@ -1,4 +1,4 @@
-# 📋 PRD - Sistema de Orçamentos Tecno Hard v1.01
+# 📋 PRD - Sistema de Orçamentos Tecno Hard v1.03
 
 **Product Requirements Document**
 
@@ -8,13 +8,15 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versão do PRD** | 1.01 |
-| **Última Atualização** | 20/01/2026 |
+| **Versão do PRD** | 1.03 |
+| **Última Atualização** | 21/01/2026 |
 | **Autor** | Claude (Anthropic) |
 | **IA de Desenvolvimento** | Claude 4.5 Sonnet |
 | **Status** | ✅ Aprovado para desenvolvimento |
 
 **Changelog:**
+- v1.03: Reformulacao do layout do PDF - numero do orcamento no canto superior direito, nova estrutura de tabela de itens com colunas Item (codigo+descricao+processos), Material, Prazo, Fat. Min., Peso Un. e Preco. Paginacao melhorada com elementos fixos (logo, numero, cabecalho da tabela) repetindo em todas as paginas, itens nao cortados entre paginas, numeracao de paginas (X/Y) condicional. Processos automaticamente ordenados conforme hierarquia cadastrada ao salvar itens.
+- v1.02: Expansao de itens na lista de orcamentos - botao de expansao em cada linha da tabela permite visualizar itens (codigo, descricao, valor/unidade) sem navegar para outra pagina. Multiplos orcamentos podem ficar expandidos simultaneamente. Itens carregados sob demanda com cache local. Versao mobile com expansao em cards.
 - v1.01: Alteracao 02 - Novos campos `observacoes_internas` e `elaborado_por` em orcamentos. Nova tabela `configuracoes` para parametros do sistema (logo, elaborado_por_default, observacoes_default). Prazo de entrega agora e campo numerico com sufixo "dias uteis". Layout do PDF ajustado: titulo com fonte menor, cliente com fonte maior, informacoes gerais proximas ao rodape, secao "Elaborado por" alinhada a direita. Auto-save com blur nos campos de condicoes comerciais. Pagina de Configuracoes documentada.
 
 
@@ -558,7 +560,32 @@ CREATE POLICY "Users can view processos"
 | Data | Sim | `created_at` formatado |
 | Itens | Não | Dropdown com códigos dos itens (se houver vários) |
 | Valor Total | Sim | `valor_total` formatado em R$ |
+| Expandir | Não | Botão para expandir/recolher itens do orçamento |
 | Ações | Não | Menu dropdown com ações |
+
+#### **Expansão de Itens**
+
+A tabela de orçamentos permite expandir cada linha para visualizar os itens sem navegar para outra página.
+
+**Comportamento:**
+- Botão com ícone ChevronDown (recolhido) ou ChevronUp (expandido)
+- Múltiplos orçamentos podem estar expandidos simultaneamente
+- Itens são carregados sob demanda (lazy loading) ao expandir pela primeira vez
+- Cache local evita recarregar itens já buscados
+- Click na linha (fora do botão) continua navegando para a página do orçamento
+
+**Dados exibidos na expansão:**
+
+| Campo | Descrição |
+|-------|-----------|
+| Código | codigo_item do item |
+| Descrição | item (nome/descrição) |
+| Valor | preco_unitario formatado com unidade (ex: R$ 45,00/kg) |
+
+**Estados visuais:**
+- Linha expandida com fundo `bg-muted/50`
+- Loading: "Carregando..." enquanto busca itens
+- Vazio: "Nenhum item cadastrado" se orçamento não tem itens
 
 4. **Ações por Orçamento:**
    - 👁️ Visualizar
@@ -661,6 +688,10 @@ Cada item é um card expandível com os campos:
 | Material | Input texto | ❌ | Material do item |
 | Processos | Multi-select | ❌ | Seleção múltipla de processos |
 | Prazo de Entrega | Input numero + sufixo | ❌ | Aceita apenas numeros inteiros. Sufixo "dias uteis" exibido automaticamente |
+
+**Ordenação de Processos:**
+- Ao salvar um item, os processos selecionados são automaticamente ordenados conforme a hierarquia cadastrada (ordem do drag & drop na tabela de processos)
+- A ordenação garante consistência na exibição em todos os lugares (formulário, preview, PDF)
 | Faturamento Mínimo | Input texto | ❌ | Valor mínimo |
 | Anexos | Upload múltiplo | ❌ | Arquivos relacionados |
 
@@ -787,60 +818,51 @@ Cada item é um card expandível com os campos:
 
 ### **5.5 Geração de PDF**
 
-**Objetivo:** Gerar PDF idêntico à visualização.
+**Objetivo:** Gerar PDF profissional com layout otimizado para múltiplas páginas.
 
 **Especificações:**
 
-**Cabeçalho:**
-- Logo Tecno Hard centralizado
-- Largura: 50% da página
-- Fundo branco
-- Proporções originais mantidas
+**Cabeçalho (repete em todas as páginas):**
+- Número do orçamento no canto superior direito (formato: "Nº: AAAA-NNNN")
+- Logo Tecno Hard centralizado (largura 50% da página)
+- Dados do cliente centralizados: Nome, Contato, Validade
 
-**Titulo:**
-- Formato: "Orcamento No: AAAA-NNNN" (ex: "Orcamento No: 2025-0006")
-- Fonte: 16px (menor que o padrao anterior)
+**Tabela de Itens:**
 
-**Dados do Cliente:**
-- Nome do cliente com fonte ~10% maior que o restante do corpo
-- Contato abaixo do nome
+| Coluna | Largura | Conteúdo |
+|--------|---------|----------|
+| Item | 42% | codigo_item + " - " + descrição + processos (linha abaixo, fonte menor) |
+| Material | 12% | material ou "-" |
+| Prazo (dias úteis) | 10% | prazo_entrega numérico |
+| Fat. Mín. | 12% | faturamento_minimo formatado ou "-" |
+| Peso Un. | 10% | peso_unitario + " kg" ou "-" |
+| Preço | 14% | preco_unitario + "/pc" ou "/kg" conforme unidade |
 
-**Corpo:**
-- Tabela de itens com todos os campos visíveis
-- Prazo de entrega exibido como "X dias uteis"
-- Preco por kg exibido como "Preco (por kg):" quando unidade = kg
-- Valor Total (se não ocultado)
+**Estilo da tabela:**
+- Cabeçalhos centralizados com fonte 9px
+- Células de valores centralizadas com fonte 9px
+- Processos exibidos abaixo do item em fonte menor
+- Processos ordenados conforme hierarquia cadastrada (ordem do drag & drop)
 
-**Informacoes Gerais:**
-- Posicionadas proximo ao rodape (nao no meio da pagina)
-- Frete, Validade, Observacoes
-- Usa flexGrow/spacer para empurrar para baixo
+**Paginação:**
+- Logo, número do orçamento e cabeçalho da tabela são elementos `fixed` (repetem em todas as páginas)
+- Itens não são cortados entre páginas (`wrap={false}`)
+- Numeração de páginas (X/Y) no rodapé, só aparece se documento tiver mais de 1 página
 
-**Secao "Elaborado por":**
-- Posicionada entre as informacoes gerais e o rodape
-- Alinhada a direita
-- Suporta multiplas linhas (nome, telefone, email)
+**Informações Gerais:**
+- Posicionadas próximo ao rodapé (usa marginTop: auto para empurrar para baixo)
+- Frete, Validade, Observações (somente se preenchidos)
 
-**Ordem dos Elementos no PDF:**
-1. Logo
-2. Titulo do Orcamento (AAAA-NNNN)
-3. Dados do Cliente
-4. Tabela de Itens
-5. Total
-6. (Espaco flexivel - spacer)
-7. Informacoes Gerais (Frete, Validade, Observacoes)
-8. Elaborado por (alinhado a direita)
-9. Rodape
-
-**Anexos:**
-- Miniaturas 4×3 cm
-- Dispostos em grade (3-4 por linha)
-- Ordenados alfabeticamente por nome
+**Seção "Elaborado por":**
+- Posicionada entre as informações gerais e o rodapé
+- Alinhada à direita
+- Suporta múltiplas linhas (nome, telefone, email)
 
 **Rodapé (todas as páginas):**
 ```
 R. Emílio Fonini, 521 - Cinquentenário, Caxias do Sul - RS
 (54) 3225-6464 - https://www.tecnohard.ind.br/
+                                                      1/3  <- só se > 1 página
 ```
 
 **Configurações do PDF:**
@@ -1055,6 +1077,12 @@ R. Emílio Fonini, 521 - Cinquentenário, Caxias do Sul - RS
 - Mobile: Formulários em coluna única
 - Tablet: 2 colunas para formulários
 - Desktop: Layout completo
+
+**Expansão de Itens (Mobile):**
+- Botão de expansão posicionado no canto superior direito do card, antes do menu de ações
+- Itens aparecem em seção colapsável entre o cabeçalho e rodapé do card
+- Layout compacto com mini-tabela de itens
+- Click no card (fora do botão) continua navegando para o orçamento
 
 **Prioridade:**
 - Desktop first (usuários principais usam computador)

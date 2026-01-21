@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Orcamento, OrcamentoStatus } from '@/lib/types/app'
+import { Orcamento, OrcamentoItem, OrcamentoStatus } from '@/lib/types/app'
 
 interface UseOrcamentosOptions {
   pageSize?: number
@@ -119,6 +119,16 @@ export function useOrcamentos(options: UseOrcamentosOptions = {}) {
     return { error }
   }
 
+  const fetchItensOrcamento = async (orcamentoId: string): Promise<{ data: OrcamentoItem[] | null; error: Error | null }> => {
+    const { data, error } = await supabase
+      .from('orcamento_itens')
+      .select('*')
+      .eq('orcamento_id', orcamentoId)
+      .order('ordem')
+    
+    return { data, error }
+  }
+
   return {
     orcamentos,
     loading,
@@ -132,6 +142,7 @@ export function useOrcamentos(options: UseOrcamentosOptions = {}) {
     refresh: () => fetchOrcamentos(true),
     deleteOrcamento,
     updateStatus,
+    fetchItensOrcamento,
   }
 }
 
