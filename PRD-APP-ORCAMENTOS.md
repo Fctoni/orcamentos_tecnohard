@@ -1,4 +1,4 @@
-# 📋 PRD - Sistema de Orçamentos Tecno Hard v1.03
+# 📋 PRD - Sistema de Orçamentos Tecno Hard v1.04
 
 **Product Requirements Document**
 
@@ -8,13 +8,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versão do PRD** | 1.03 |
+| **Versão do PRD** | 1.04 |
 | **Última Atualização** | 21/01/2026 |
 | **Autor** | Claude (Anthropic) |
 | **IA de Desenvolvimento** | Claude 4.5 Sonnet |
 | **Status** | ✅ Aprovado para desenvolvimento |
 
 **Changelog:**
+- v1.04: Layout do Preview sincronizado com PDF - numero do orcamento no canto superior direito, tabela de itens com colunas Item (codigo+descricao+processos), Material, Prazo, Fat.Min., Peso Un., Preco e Anexos (coluna exclusiva do preview com icone clicavel). Scroll horizontal em mobile para tabela de itens.
 - v1.03: Reformulacao do layout do PDF - numero do orcamento no canto superior direito, nova estrutura de tabela de itens com colunas Item (codigo+descricao+processos), Material, Prazo, Fat. Min., Peso Un. e Preco. Paginacao melhorada com elementos fixos (logo, numero, cabecalho da tabela) repetindo em todas as paginas, itens nao cortados entre paginas, numeracao de paginas (X/Y) condicional. Processos automaticamente ordenados conforme hierarquia cadastrada ao salvar itens.
 - v1.02: Expansao de itens na lista de orcamentos - botao de expansao em cada linha da tabela permite visualizar itens (codigo, descricao, valor/unidade) sem navegar para outra pagina. Multiplos orcamentos podem ficar expandidos simultaneamente. Itens carregados sob demanda com cache local. Versao mobile com expansao em cards.
 - v1.01: Alteracao 02 - Novos campos `observacoes_internas` e `elaborado_por` em orcamentos. Nova tabela `configuracoes` para parametros do sistema (logo, elaborado_por_default, observacoes_default). Prazo de entrega agora e campo numerico com sufixo "dias uteis". Layout do PDF ajustado: titulo com fonte menor, cliente com fonte maior, informacoes gerais proximas ao rodape, secao "Elaborado por" alinhada a direita. Auto-save com blur nos campos de condicoes comerciais. Pagina de Configuracoes documentada.
@@ -728,67 +729,75 @@ Cada item é um card expandível com os campos:
 
 **Tela: Visualizar Orçamento (`/orcamentos/[id]`)**
 
-**Objetivo:** Mostrar o orçamento exatamente como será exportado em PDF.
+**Objetivo:** Mostrar o orçamento com layout sincronizado ao PDF, com coluna adicional de anexos.
 
 **Layout:**
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│                    [LOGO TECNO HARD]                            │
-│                    (50% largura, centralizado)                  │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│                         ORÇAMENTO                               │
-│                    (título principal)                           │
-│                                                                 │
-│                    Cliente: NOME DO CLIENTE                     │
-│                    (20% menor que título)                       │
-│                                                                 │
-│                    Contato: Nome do Contato                     │
-│                    (se preenchido)                              │
-│                                                                 │
-│                    Orçamento Nº: 2025-0012                      │
-│                    Validade: 15/12/2025                         │
-│                    (se preenchido)                              │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ITENS DO ORÇAMENTO                                             │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │ Código | Item | Qtd | Un | Preço Un. | Total              │  │
-│  ├───────────────────────────────────────────────────────────┤  │
-│  │ ABC-001 | Peça de aço | 10 | Un | R$ 50,00 | R$ 500,00    │  │
-│  │ Material: Aço 1045                                        │  │
-│  │ Processos: Têmpera, Revenimento                           │  │
-│  │ Prazo: 15 dias                                            │  │
-│  │ [Anexos em miniatura 4×3cm]                               │  │
-│  ├───────────────────────────────────────────────────────────┤  │
-│  │ DEF-002 | Eixo temperado | 5 | Pç | R$ 200,00 | R$ 1000   │  │
-│  │ ...                                                       │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  INFORMAÇÕES GERAIS                                             │
-│  Frete: CIF                                                     │
-│  Observações: Texto das observações...                          │
-│  (apenas se preenchidos)                                        │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│                              VALOR TOTAL: R$ 1.500,00           │
-│                              (se não ocultado)                  │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  R. Emílio Fonini, 521 - Cinquentenário, Caxias do Sul - RS    │
-│  (54) 3225-6464 - https://www.tecnohard.ind.br/                │
-│  (rodapé fixo)                                                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│                                                   Nº: 2026-0012    │
+│                                                                    │
+│                     [LOGO TECNO HARD]                              │
+│                     (50% largura, centralizado)                    │
+│                                                                    │
+│                     Cliente: NOME DO CLIENTE                       │
+│                     Contato: Nome do Contato                       │
+│                     Validade: 15/12/2025                           │
+│                                                                    │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ITENS DO ORÇAMENTO                                                │
+│  ┌──────────┬──────────┬────────┬────────┬────────┬───────┬─────┐  │
+│  │   Item   │ Material │ Prazo  │Fat.Min.│Peso Un.│ Preço │ 📎  │  │
+│  │          │          │(d.úteis)│       │        │       │     │  │
+│  ├──────────┼──────────┼────────┼────────┼────────┼───────┼─────┤  │
+│  │ ABC-001  │ SAE 8620 │   7    │R$100   │ 3.25kg │R$44/pc│ 📎2 │  │
+│  │ - PINO   │          │        │        │        │       │     │  │
+│  │ Têmpera, │          │        │        │        │       │     │  │
+│  │ Revenimento         │        │        │        │       │     │  │
+│  ├──────────┼──────────┼────────┼────────┼────────┼───────┼─────┤  │
+│  │ DEF-002  │ Aço 1020 │   15   │   -    │   -    │R$10/kg│  -  │  │
+│  │ - EIXO   │          │        │        │        │       │     │  │
+│  │ Corte    │          │        │        │        │       │     │  │
+│  └──────────┴──────────┴────────┴────────┴────────┴───────┴─────┘  │
+│                                                                    │
+│                               VALOR TOTAL: R$ 1.500,00             │
+│                                                                    │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  INFORMAÇÕES GERAIS                                                │
+│  Frete: CIF                                                        │
+│  Prazo de Faturamento: 30 dias                                     │
+│  Observações: ...                                                  │
+│                                                                    │
+│                                        Elaborado por:              │
+│                                        João Silva                  │
+│                                        vendas@tecnohard.com.br     │
+│                                                                    │
+├────────────────────────────────────────────────────────────────────┤
+│  R. Emílio Fonini, 521 - Cinquentenário, Caxias do Sul - RS       │
+│  (54) 3225-6464 - https://www.tecnohard.ind.br/                    │
+└────────────────────────────────────────────────────────────────────┘
 ```
+
+**Tabela de Itens (Preview):**
+
+| Coluna | Conteúdo |
+|--------|----------|
+| Item | codigo_item + " - " + descrição + processos (linha abaixo) |
+| Material | material ou "-" |
+| Prazo (dias úteis) | prazo_entrega numérico |
+| Fat. Mín. | faturamento_minimo formatado ou "-" |
+| Peso Un. | peso_unitario + " kg" ou "-" |
+| Preço | preco_unitario + "/pc" ou "/kg" conforme unidade |
+| Anexos | Ícone 📎 + contador (clicável) ou "-" |
+
+**Coluna Anexos (exclusiva do Preview):**
+- Ícone 📎 com contador de anexos do item
+- Clique abre modal com lista de anexos (ver, baixar)
+- Se item não tem anexos, exibe "-" (não clicável)
+
+**Nota:** A coluna Anexos não existe no PDF, pois os anexos já são exibidos como miniaturas.
 
 **Ações da Página:**
 - ✏️ Editar (vai para `/orcamentos/[id]/editar`)
@@ -1083,6 +1092,11 @@ R. Emílio Fonini, 521 - Cinquentenário, Caxias do Sul - RS
 - Itens aparecem em seção colapsável entre o cabeçalho e rodapé do card
 - Layout compacto com mini-tabela de itens
 - Click no card (fora do botão) continua navegando para o orçamento
+
+**Visualização de Orçamento (Mobile):**
+- Tabela de itens com scroll horizontal (`overflow-x-auto`)
+- Largura mínima da tabela: 800px
+- Permite visualizar todas as colunas em telas pequenas
 
 **Prioridade:**
 - Desktop first (usuários principais usam computador)

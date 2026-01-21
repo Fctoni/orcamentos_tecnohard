@@ -226,42 +226,43 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
     
     <Card className="bg-white shadow-lg">
       <CardContent className="p-8 space-y-8">
-        {/* Cabeçalho com Logo */}
-        <div className="flex justify-center">
-          {!logoError ? (
-            <Image
-              src={configuredLogoUrl || "/logo-tecnohard.png"}
-              alt="Logo da Empresa"
-              width={300}
-              height={120}
-              className="object-contain"
-              priority
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <h1 className="text-3xl font-bold text-blue-800">TECNO HARD</h1>
-          )}
+        {/* Número do orçamento no canto superior direito */}
+        <div className="relative">
+          <span className="absolute top-0 right-0 text-sm font-medium text-gray-600">
+            Nº: {orcamento.numero}
+          </span>
+          
+          {/* Cabeçalho com Logo centralizado */}
+          <div className="flex justify-center pt-4">
+            {!logoError ? (
+              <Image
+                src={configuredLogoUrl || "/logo-tecnohard.png"}
+                alt="Logo da Empresa"
+                width={300}
+                height={120}
+                className="object-contain"
+                priority
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <h1 className="text-3xl font-bold text-blue-800">TECNO HARD</h1>
+            )}
+          </div>
         </div>
 
-        {/* Título e Dados do Cliente */}
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-gray-800">ORÇAMENTO</h1>
-          
-          <div className="space-y-1">
-            <p className="text-xl font-semibold text-gray-700">
-              Cliente: {orcamento.cliente}
+        {/* Dados do Cliente */}
+        <div className="text-center space-y-2">
+          <p className="text-xl font-semibold text-gray-700">
+            Cliente: {orcamento.cliente}
+          </p>
+          {orcamento.contato && (
+            <p className="text-gray-600">Contato: {orcamento.contato}</p>
+          )}
+          {orcamento.validade && (
+            <p className="text-gray-600">
+              Validade: {format(new Date(orcamento.validade), 'dd/MM/yyyy', { locale: ptBR })}
             </p>
-            {orcamento.contato && (
-              <p className="text-gray-600">Contato: {orcamento.contato}</p>
-            )}
-          </div>
-
-          <div className="text-gray-600">
-            <p>Orçamento Nº: <span className="font-semibold">{orcamento.numero}</span></p>
-            {orcamento.validade && (
-              <p>Validade: {format(new Date(orcamento.validade), 'dd/MM/yyyy', { locale: ptBR })}</p>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Tabela de Itens */}
@@ -271,59 +272,79 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
               ITENS DO ORÇAMENTO
             </h2>
             
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">Código</TableHead>
-                  <TableHead className="font-semibold">Item</TableHead>
-                  <TableHead className="font-semibold text-center">Peso Un.</TableHead>
-                  <TableHead className="font-semibold text-right">Preço Un.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orcamento.itens.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono">{item.codigo_item}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <p className="font-medium">{item.item}</p>
-                        {/* Detalhes adicionais */}
-                        <div className="text-sm text-gray-500 space-y-0.5">
-                          {item.material && <p>Material: {item.material}</p>}
-                          {item.processos && item.processos.length > 0 && (
-                            <p>Processos: {item.processos.join(', ')}</p>
-                          )}
-                          {item.prazo_entrega && (
-                            <p>Prazo: {item.prazo_entrega}{!isNaN(Number(item.prazo_entrega)) ? ' dias uteis' : ''}</p>
-                          )}
-                          {item.faturamento_minimo && <p>Fat. Minimo: {formatFaturamentoMinimo(item.faturamento_minimo)}</p>}
-                        </div>
-                        {/* Botão para ver anexos */}
-                        {item.anexos && item.anexos.length > 0 && (
-                          <div className="mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenAnexos(item.anexos || [], item.item)}
-                            >
-                              <Paperclip className="mr-2 h-4 w-4" />
-                              Ver anexos ({item.anexos.length})
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.unidade === 'kg' ? '-' : (item.peso_unitario ? `${item.peso_unitario} kg` : '-')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.preco_unitario)}
-                      {item.unidade === 'kg' ? ' (por kg)' : '/pc'}
-                    </TableCell>
+            {/* Scroll horizontal em mobile */}
+            <div className="overflow-x-auto">
+              <Table className="min-w-[800px]">
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold">Item</TableHead>
+                    <TableHead className="font-semibold w-[100px]">Material</TableHead>
+                    <TableHead className="font-semibold text-center w-[80px]">
+                      <div>Prazo</div>
+                      <div className="text-xs font-normal text-gray-500">(dias úteis)</div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-right w-[100px]">Fat. Min.</TableHead>
+                    <TableHead className="font-semibold text-center w-[80px]">Peso Un.</TableHead>
+                    <TableHead className="font-semibold text-right w-[100px]">Preço</TableHead>
+                    <TableHead className="font-semibold text-center w-[60px]">Anexos</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {orcamento.itens.map((item) => (
+                    <TableRow key={item.id}>
+                      {/* Coluna Item: código + descrição + processos */}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <p className="font-medium">
+                            {item.codigo_item && <span className="font-mono">{item.codigo_item} - </span>}
+                            {item.item}
+                          </p>
+                          {item.processos && item.processos.length > 0 && (
+                            <p className="text-sm text-gray-500">{item.processos.join(', ')}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      {/* Coluna Material */}
+                      <TableCell className="text-sm">
+                        {item.material || '-'}
+                      </TableCell>
+                      {/* Coluna Prazo */}
+                      <TableCell className="text-center">
+                        {item.prazo_entrega || '-'}
+                      </TableCell>
+                      {/* Coluna Faturamento Mínimo */}
+                      <TableCell className="text-right text-sm">
+                        {item.faturamento_minimo ? formatFaturamentoMinimo(item.faturamento_minimo) : '-'}
+                      </TableCell>
+                      {/* Coluna Peso Unitário */}
+                      <TableCell className="text-center text-sm">
+                        {item.unidade === 'kg' ? '-' : (item.peso_unitario ? `${item.peso_unitario} kg` : '-')}
+                      </TableCell>
+                      {/* Coluna Preço */}
+                      <TableCell className="text-right">
+                        {formatCurrency(item.preco_unitario)}
+                        {item.unidade === 'kg' ? '/kg' : '/pc'}
+                      </TableCell>
+                      {/* Coluna Anexos */}
+                      <TableCell className="text-center">
+                        {item.anexos && item.anexos.length > 0 ? (
+                          <button
+                            onClick={() => handleOpenAnexos(item.anexos || [], item.item)}
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={`Ver ${item.anexos.length} anexo(s)`}
+                          >
+                            <Paperclip className="h-4 w-4" />
+                            <span>{item.anexos.length}</span>
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
 
@@ -345,6 +366,16 @@ export function OrcamentoPreview({ orcamento }: OrcamentoPreviewProps) {
             <p className="text-2xl font-bold text-gray-800">
               VALOR TOTAL: {formatCurrency(orcamento.valor_total)}
             </p>
+          </div>
+        )}
+
+        {/* Elaborado por */}
+        {orcamento.elaborado_por && (
+          <div className="text-right mt-4">
+            <p className="text-sm font-medium text-gray-600 mb-1">Elaborado por:</p>
+            {orcamento.elaborado_por.split('\n').map((linha, idx) => (
+              <p key={idx} className="text-sm text-gray-600">{linha}</p>
+            ))}
           </div>
         )}
 

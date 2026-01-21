@@ -31,6 +31,26 @@ Antes de implementar qualquer funcionalidade, SEMPRE:
 - Apos qualquer execucao, SEMPRE teste o typescript atraves do comando: `npx tsc --noEmit 2>&1 | Select-Object`
 - Se houver erros de TypeScript, corrija-os antes de prosseguir
 
+## Terminal (PowerShell no Windows)
+
+**Regras obrigatorias:**
+
+1. **Usar `;` em vez de `&&`** - PowerShell nao suporta `&&` como separador de comandos
+2. **Sempre usar caminho absoluto** para navegar ate o projeto:
+   ```powershell
+   cd "C:\Users\tonietto.felipe\My Drive\cursor\Orcamentos\orcamentos-tecnohard"
+   ```
+3. **Comando de validacao TypeScript completo:**
+   ```powershell
+   cd "C:\Users\tonietto.felipe\My Drive\cursor\Orcamentos\orcamentos-tecnohard"; npx tsc --noEmit 2>&1 | Select-Object -First 50
+   ```
+
+**Erros comuns a evitar:**
+- ❌ `cd pasta && comando` (sintaxe bash)
+- ✅ `cd pasta; comando` (sintaxe PowerShell)
+- ❌ `cd orcamentos-tecnohard` (relativo, pode falhar)
+- ✅ `cd "C:\...\orcamentos-tecnohard"` (absoluto, sempre funciona)
+
 ## Exemplos de onde buscar padrões
 
 | O que implementar | Onde buscar referência |
